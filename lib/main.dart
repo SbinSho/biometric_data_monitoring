@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-void main() {
+import 'home.dart';
+import 'models/hive_model.dart';
+
+void main() async {
+  await HiveModel.init();
+
   runApp(const Main());
 }
 
@@ -14,6 +20,13 @@ class Main extends StatefulWidget {
 class _MainState extends State<Main> {
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return MaterialApp(
+      title: "Biometric Data Monitoring",
+      theme: ThemeData(primaryColor: Colors.blueAccent),
+      home: MultiProvider(
+        providers: [],
+        child: const Home(),
+      ),
+    );
   }
 }
