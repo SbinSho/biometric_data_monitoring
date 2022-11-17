@@ -1,3 +1,4 @@
+import 'package:biometric_data_monitoring/color_schemes.g.dart';
 import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -33,7 +34,11 @@ class _MainState extends State<Main> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "Biometric Data Monitoring",
-      theme: ThemeData(primaryColor: Colors.blueAccent),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: darkColorScheme,
+      ),
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider.value(value: _bioMonitorProvder),

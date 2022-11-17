@@ -1,6 +1,9 @@
 import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
+import 'package:biometric_data_monitoring/views/user_title.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import 'models/user_data.dart';
 
 class DashBoard extends StatefulWidget {
   const DashBoard({super.key});
@@ -10,13 +13,25 @@ class DashBoard extends StatefulWidget {
 }
 
 class _DashBoardState extends State<DashBoard> {
-  late final BioMonitoringProvider _bioMonitorProvder;
+  late final BioMonitoringProvider _bioMonitorProvider;
+
+  // Text Widget
+  final registerTitle = const Text("사용자 등록");
+  final registerUser = const Text("등록");
+  final cancle = const Text('취소', style: TextStyle(color: Colors.red));
+
+  final userTiles = <Widget>[];
 
   @override
   void initState() {
     super.initState();
-    _bioMonitorProvder =
+
+    _bioMonitorProvider =
         Provider.of<BioMonitoringProvider>(context, listen: false);
+
+    for (var element in _bioMonitorProvider.userList.entries) {
+      userTiles.add(UserTile(userDataModel: element.value));
+    }
   }
 
   @override
@@ -28,9 +43,15 @@ class _DashBoardState extends State<DashBoard> {
       ),
       body: Consumer<BioMonitoringProvider>(
         builder: (context, value, child) {
-          return Container();
+          return GridView.count(
+            crossAxisCount: 1,
+            children: userTiles,
+          );
         },
-        child: Container(),
+        child: GridView.count(
+          crossAxisCount: 1,
+          children: userTiles,
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -48,7 +69,7 @@ class _DashBoardState extends State<DashBoard> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('사용자 등록'),
+          title: registerTitle,
           content: SingleChildScrollView(
             child: TextField(
               controller: idCont,
@@ -56,20 +77,24 @@ class _DashBoardState extends State<DashBoard> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('등록'),
+              child: registerUser,
               onPressed: () {
                 if (idCont.text != "") {
-                  _bioMonitorProvder.createUser(idCont.text);
-                  Navigator.of(context).pop();
+                  _bioMonitorProvider.createUser(idCont.text).then(
+                    (value) {
+                      if (value) {
+                        Navigator.of(context).pop();
+                      } else {
+                        // TODO : 실패시 로직 처리
+                      }
+                    },
+                  );
                 }
               },
             ),
             TextButton(
               onPressed: Navigator.of(context).pop,
-              child: const Text(
-                '취소',
-                style: TextStyle(color: Colors.red),
-              ),
+              child: cancle,
             ),
           ],
         );
