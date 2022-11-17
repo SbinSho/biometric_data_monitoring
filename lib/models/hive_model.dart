@@ -30,7 +30,7 @@ class HiveTypeId {
 /// hive model
 /// box info
 /// 1. BoxType.user
-///     - key : user name (Primary Key)
+///     - key : user name (Primary Key, lowerCase)
 ///     - value : user data model
 /// 1. BoxType.bio
 ///     - key : user name (Primary Key)

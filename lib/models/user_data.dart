@@ -20,19 +20,8 @@ class UserDataModel {
 
   UserDataModel(this.userName, [this.deviceName, this.dcInterval = 1]);
 
-  bool saveData([String? userName, String? deviceName, int? dcInterval]) {
-    if (userName != null) {
-      this.userName = userName;
-    }
-    if (deviceName != null) {
-      this.deviceName = deviceName;
-    }
-    if (dcInterval != null) {
-      this.dcInterval = dcInterval;
-    }
-
-    // get hive box
-
-    return true;
+  @override
+  String toString() {
+    return "userName : $userName, deviceName : $deviceName, dcIntervale : $dcInterval";
   }
 }

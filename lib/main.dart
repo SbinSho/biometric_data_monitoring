@@ -1,7 +1,9 @@
+import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 
-import 'home.dart';
+import 'dash_board.dart';
 import 'models/hive_model.dart';
 
 void main() async {
@@ -18,12 +20,26 @@ class Main extends StatefulWidget {
 }
 
 class _MainState extends State<Main> {
+  late final BioMonitoringProvider _bioMonitorProvder;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _bioMonitorProvder = BioMonitoringProvider();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "Biometric Data Monitoring",
       theme: ThemeData(primaryColor: Colors.blueAccent),
-      home: const Home(),
+      home: MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: _bioMonitorProvder),
+        ],
+        child: const DashBoard(),
+      ),
     );
   }
 }
