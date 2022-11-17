@@ -23,10 +23,7 @@ class _MainState extends State<Main> {
     return MaterialApp(
       title: "Biometric Data Monitoring",
       theme: ThemeData(primaryColor: Colors.blueAccent),
-      home: MultiProvider(
-        providers: [],
-        child: const Home(),
-      ),
+      home: const Home(),
     );
   }
 }
