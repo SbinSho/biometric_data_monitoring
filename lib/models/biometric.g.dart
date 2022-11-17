@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'biometric_model.dart';
+part of 'biometric.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator

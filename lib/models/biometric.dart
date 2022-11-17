@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 import 'hive_model.dart';
 
-part 'biometric_model.g.dart';
+part 'biometric.g.dart';
 
 @HiveType(typeId: HiveTypeId.biometricModel)
 class BiometricModel {

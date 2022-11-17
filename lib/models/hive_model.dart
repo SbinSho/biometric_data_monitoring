@@ -1,6 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'biometric_model.dart';
+import 'biometric.dart';
 import 'user_data.dart';
 
 enum BoxType {

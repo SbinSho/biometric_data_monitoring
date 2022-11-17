@@ -18,7 +18,7 @@ class UserDataModelAdapter extends TypeAdapter<UserDataModel> {
     };
     return UserDataModel(
       fields[0] as String,
-      fields[1] as String,
+      fields[1] as String?,
       fields[2] as int,
     );
   }

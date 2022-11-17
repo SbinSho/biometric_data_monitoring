@@ -12,13 +12,13 @@ class UserDataModel {
 
   @HiveField(1)
   // ble device name
-  late String deviceName;
+  late String? deviceName;
 
   @HiveField(2)
   // data collection interval
   late int dcInterval;
 
-  UserDataModel(this.userName, this.deviceName, [this.dcInterval = 1]);
+  UserDataModel(this.userName, [this.deviceName, this.dcInterval = 1]);
 
   bool saveData([String? userName, String? deviceName, int? dcInterval]) {
     if (userName != null) {
