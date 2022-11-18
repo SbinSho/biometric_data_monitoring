@@ -1,7 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'biometric.dart';
-import 'user_data.dart';
 
 enum BoxType {
   user,
@@ -40,12 +39,12 @@ class HiveTypeId {
 ///     - value : bio data statistics model
 class HiveModel {
   static Future<void> init() async {
-    Hive.registerAdapter(UserDataModelAdapter());
     Hive.registerAdapter(BiometricModelAdapter());
 
     await Hive.initFlutter();
 
     for (var element in BoxType.values) {
+      await Hive.deleteBoxFromDisk(element.boxName);
       await Hive.openBox(element.boxName);
     }
   }

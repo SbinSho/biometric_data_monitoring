@@ -30,6 +30,9 @@ dependencies:
   # date time
   intl: ^0.17.0
 
+  # google font
+  google_fonts: ^3.0.1
+
   permission_handler: ^10.2.0
 
 dev_dependencies:

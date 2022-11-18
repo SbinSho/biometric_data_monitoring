@@ -1,21 +1,17 @@
-import 'package:biometric_data_monitoring/models/user_data.dart';
 import 'package:flutter/material.dart';
 
 class UserTile extends StatefulWidget {
-  final UserDataModel userDataModel;
+  final String userName;
 
-  const UserTile({required this.userDataModel, super.key});
+  const UserTile({required this.userName, super.key});
 
   @override
   State<UserTile> createState() => _UserTileState();
 }
 
 class _UserTileState extends State<UserTile> {
-  late final UserDataModel model;
-
   @override
   void initState() {
-    model = widget.userDataModel;
     super.initState();
   }
 
@@ -24,7 +20,7 @@ class _UserTileState extends State<UserTile> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("${model.userName}"),
+        Text(widget.userName),
         Container(
           child: Column(children: []),
         ),
