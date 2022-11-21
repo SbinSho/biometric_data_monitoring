@@ -40,12 +40,7 @@ class _MainState extends State<Main> {
         useMaterial3: true,
         colorScheme: darkColorScheme,
         textTheme: TextTheme(
-          bodyText1: const TextStyle(
-            fontSize: 14,
-            color: Colors.white,
-          ),
-          bodyText2: TextStyle(
-            fontSize: 21,
+          titleLarge: TextStyle(
             color: darkColorScheme.onPrimaryContainer,
           ),
         ),
