@@ -40,7 +40,13 @@ class _MainState extends State<Main> {
         useMaterial3: true,
         colorScheme: darkColorScheme,
         textTheme: TextTheme(
+          headlineLarge: TextStyle(
+            color: darkColorScheme.onPrimaryContainer,
+          ),
           titleLarge: TextStyle(
+            color: darkColorScheme.onPrimaryContainer,
+          ),
+          titleMedium: TextStyle(
             color: darkColorScheme.onPrimaryContainer,
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'biometric.dart';
+import 'user.dart';
 
 enum BoxType {
   user,
@@ -22,7 +23,7 @@ extension HiveBoxNameToString on BoxType {
 }
 
 class HiveTypeId {
-  static const int userDataModel = 1;
+  static const int userModel = 1;
   static const int biometricModel = 2;
 }
 
@@ -30,7 +31,7 @@ class HiveTypeId {
 /// box info
 /// 1. BoxType.user
 ///     - key : user name (Primary Key, lowerCase)
-///     - value : user data model
+///     - value : user model
 /// 1. BoxType.bio
 ///     - key : user name (Primary Key)
 ///     - value : user bio data model
@@ -39,6 +40,7 @@ class HiveTypeId {
 ///     - value : bio data statistics model
 class HiveModel {
   static Future<void> init() async {
+    Hive.registerAdapter(UserAdapter());
     Hive.registerAdapter(BiometricModelAdapter());
 
     await Hive.initFlutter();

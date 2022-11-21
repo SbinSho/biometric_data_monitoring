@@ -2,34 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 import '../models/hive_model.dart';
+import '../models/user.dart';
 
 class BioMonitoringProvider extends ChangeNotifier {
   final Box _userBox = Hive.box(BoxType.user.boxName);
 
   BioMonitoringProvider();
 
-  Set<String> loadUsers() {
-    final keys = _userBox.values;
+  Set<User> loadUsers() {
+    final values = _userBox.values;
 
-    final users = <String>{};
+    final users = <User>{};
 
-    for (var key in keys) {
-      users.add(key);
+    for (var value in values) {
+      users.add(value);
     }
 
     return users;
   }
 
-  Future<bool> createUser(String userName) async {
-    // get box
-    final overlapUser = _userBox.get(userName.toLowerCase());
+  bool idCheck(String id) {
+    final overlapUser = _userBox.get(id.toLowerCase());
 
     if (overlapUser != null) {
       return false;
     }
 
+    return true;
+  }
+
+  Future<bool> registerUser(User user) async {
+    if (!idCheck(user.userID)) {
+      return false;
+    }
+
     // save data
-    await _userBox.put(userName.toLowerCase(), userName);
+    await _userBox.put(user.userID.toLowerCase(), user);
 
     // debug msg
     debugPrint("User List==============");
@@ -37,6 +45,14 @@ class BioMonitoringProvider extends ChangeNotifier {
       debugPrint(element.toString());
     }
     debugPrint("=======================");
+
+    return true;
+  }
+
+  Future<bool> editUser(User user) async {
+    await _userBox.put(user.userID.toLowerCase(), user);
+
+    //
 
     return true;
   }

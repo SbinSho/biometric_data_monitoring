@@ -16,4 +16,8 @@ class BiometricModel {
   late final double step;
 
   BiometricModel(this.timeStamp, this.temp, this.heart, this.step);
+
+  @override
+  String toString() =>
+      "timeStamp : $timeStamp, temp : $temp, interval: $heart, registerTime : $step";
 }
