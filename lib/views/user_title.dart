@@ -1,35 +1,34 @@
-import 'package:biometric_data_monitoring/providers/device_interface.dart';
-import 'package:biometric_data_monitoring/providers/device_scan.dart';
-import 'package:biometric_data_monitoring/models/user.dart';
+import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:provider/provider.dart';
 
+import '../models/user.dart';
+import '../providers/device_scan.dart';
 import 'real_time_chart.dart';
 
 class UserTile extends StatefulWidget {
   final User user;
 
-  const UserTile({required this.user, super.key});
+  const UserTile({
+    required this.user,
+    super.key,
+  });
 
   @override
   State<UserTile> createState() => _UserTileState();
 }
 
 class _UserTileState extends State<UserTile> {
-  late bool deviceFlag;
-
-  late DeviceInterface deviceInterface;
-
+  late final User user;
+  late DeviceDataProcess? process;
+  late final BioMonitoringProvider provider;
   @override
   void initState() {
     super.initState();
-
-    deviceFlag = false;
-
-    deviceInterface = DeviceInterface(widget.user);
-    if (deviceInterface.deviceID != null) {
-      deviceInterface.startTask();
-    }
+    user = widget.user;
+    provider = Provider.of<BioMonitoringProvider>(context, listen: false);
+    process = provider.devices[user.userID];
   }
 
   @override
@@ -40,7 +39,7 @@ class _UserTileState extends State<UserTile> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.user.userID,
+            user.userID,
             style: Theme.of(context).textTheme.headlineLarge!,
           ),
           Card(
@@ -55,10 +54,11 @@ class _UserTileState extends State<UserTile> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       Text(
-                        deviceInterface.userID,
+                        user.deviceID ?? "NULL",
                         style: Theme.of(context).textTheme.titleMedium!,
                       ),
                       StreamBuilder<DeviceConnectionState>(
+                        stream: process?.connectState,
                         initialData: DeviceConnectionState.disconnected,
                         builder: (context, snapshot) {
                           if (snapshot.data! ==
@@ -96,100 +96,61 @@ class _UserTileState extends State<UserTile> {
                   ),
                   const SizedBox(height: 10.0),
                   Align(
-                      alignment: Alignment.center,
-                      child: Wrap(
-                        spacing: 10.0,
-                        runSpacing: 10.0,
-                        direction: Axis.horizontal,
-                        children: [
-                          Container(
-                            width: 300,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.red),
-                            ),
-                            child: RealTimeChart(
-                              chartType: ChartType.temp,
-                              dataStream: deviceInterface.tempStream,
-                            ),
-                          ),
-                          Container(
-                            width: 300,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.red),
-                            ),
-                            child: RealTimeChart(
-                              chartType: ChartType.heart,
-                              dataStream: deviceInterface.heartStream,
-                            ),
-                          ),
-                          Container(
-                            width: 300,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.red),
-                            ),
-                            child: RealTimeChart(
-                              chartType: ChartType.step,
-                              dataStream: deviceInterface.stepStream,
-                            ),
-                          ),
-                        ],
-                      ) /* deviceFlag
-                        ? Wrap(
-                            spacing: 10.0,
-                            runSpacing: 10.0,
-                            direction: Axis.horizontal,
-                            children: [
-                              Container(
-                                width: 300,
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.red),
-                                ),
-                                child: RealTimeChart(
-                                  chartType: ChartType.temp,
-                                  dataStream: deviceInterface.tempStream,
-                                ),
-                              ),
-                              Container(
-                                width: 300,
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.red),
-                                ),
-                                child: RealTimeChart(
-                                  chartType: ChartType.heart,
-                                  dataStream: deviceInterface.heartStream,
-                                ),
-                              ),
-                              Container(
-                                width: 300,
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.red),
-                                ),
-                                child: RealTimeChart(
-                                  chartType: ChartType.step,
-                                  dataStream: deviceInterface.stepStream,
-                                ),
-                              ),
-                            ],
+                    alignment: Alignment.center,
+                    child: process != null
+                        ? StreamBuilder<ChartData>(
+                            stream: process!.chartDataStream,
+                            builder: (context, snapshot) {
+                              if (snapshot.data == null) {
+                                return const CircularProgressIndicator();
+                              }
+
+                              return Wrap(
+                                spacing: 10.0,
+                                runSpacing: 10.0,
+                                direction: Axis.horizontal,
+                                children: [
+                                  SizedBox(
+                                    width: 300,
+                                    height: 200,
+                                    child: RealTimeChart(
+                                      chartType: ChartType.temp,
+                                      dataStream: process!.chartDataStream,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 300,
+                                    height: 200,
+                                    child: RealTimeChart(
+                                      chartType: ChartType.heart,
+                                      dataStream: process!.chartDataStream,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 300,
+                                    height: 200,
+                                    child: RealTimeChart(
+                                      chartType: ChartType.step,
+                                      dataStream: process!.chartDataStream,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           )
                         : ElevatedButton(
                             onPressed: () {
-                              deviceInterface.startScan();
-                              if (deviceInterface.deviceID != null) {
-                                setState(() {
-                                  deviceFlag = true;
-                                });
-                              }
-                              _scanDeviceDialog(context);
+                              _scanDeviceDialog(context).then(
+                                (value) {
+                                  if (value != null || value == true) {
+                                    setState(() {});
+                                  }
+                                },
+                              );
                             },
                             child: const Text("디바이스 추가"),
-                          ), */
-                      ),
+                          ),
+                  ),
                   const SizedBox(height: 10.0),
                   ElevatedButton(
                     onPressed: () {},
@@ -204,8 +165,11 @@ class _UserTileState extends State<UserTile> {
     );
   }
 
-  Future<void> _scanDeviceDialog(BuildContext context) async {
-    return showModalBottomSheet(
+  Future<bool?> _scanDeviceDialog(BuildContext context) async {
+    var scanModel = DeviceScan();
+    scanModel.startScan();
+
+    return await showModalBottomSheet<bool?>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
@@ -229,7 +193,7 @@ class _UserTileState extends State<UserTile> {
                   child: Column(
                     children: [
                       StreamBuilder<Map<String, DiscoveredDevice>>(
-                        stream: deviceInterface.deviceDatas,
+                        stream: scanModel.deviceDatas,
                         initialData: const {},
                         builder: (context, snapshot) {
                           var widgets = <Widget>[];
@@ -238,8 +202,17 @@ class _UserTileState extends State<UserTile> {
                             widgets.add(
                               InkWell(
                                 onTap: () {
-                                  deviceInterface.deviceID = element.value.id;
-                                  deviceInterface.startTask();
+                                  scanModel.stopScan();
+                                  provider
+                                      .registerDevice(user, element.value.id)
+                                      .then((value) {
+                                    if (value) {
+                                      process = provider.devices[user.userID];
+                                      Navigator.of(context).pop(true);
+                                    } else {
+                                      Navigator.of(context).pop(false);
+                                    }
+                                  });
                                 },
                                 child: ListTile(
                                   title: Text(element.value.name),
@@ -262,17 +235,17 @@ class _UserTileState extends State<UserTile> {
               ),
               const SizedBox(height: 10.0),
               StreamBuilder(
-                stream: deviceInterface.scanningState,
+                stream: scanModel.scanningState,
                 initialData: false,
                 builder: (context, snapshot) {
                   if (snapshot.data!) {
                     return ElevatedButton(
-                      onPressed: deviceInterface.stopScan,
+                      onPressed: scanModel.stopScan,
                       child: const CircularProgressIndicator(),
                     );
                   } else {
                     return ElevatedButton(
-                      onPressed: deviceInterface.startScan,
+                      onPressed: scanModel.startScan,
                       child: const Text("재검색"),
                     );
                   }

@@ -1,19 +1,14 @@
 import 'dart:async';
 
+import 'package:biometric_data_monitoring/providers/device_comm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 import '../app_constant.dart';
 
-/// DataModel
-/// - UI에서 사용 할 DataStream을 관리하는 객체
-/// - 수집간격에 만큼 Stream 데이터를 전달하며, DB에도 저장
-class DataSendResModel {
-  late final String deviceID;
-
-  DataSendResModel(this.deviceID);
-
-  final _ble = FlutterReactiveBle();
+/// DataSendResModel
+/// - B7Pro와 송수신을 담당할 클래스
+class DeviceSendRes extends DeviceCommon {
   final _bodyTemp = 0x24;
   final _heartRate = 0xE5;
   final _stepCount = 0XB1;
@@ -23,12 +18,17 @@ class DataSendResModel {
   // command send 대기 시간
   final _sendCmdMs = 1000;
 
-  // band data stream
+  late final Function(List<int> data) notiyCallback;
+
+  DeviceSendRes(String deviceID, this.notiyCallback) : super(deviceID);
+
+  // B7Pro의 알림 채널 구독
   StreamSubscription<List<int>>? _dataSubscription;
 
-  ValueNotifier<Future<void>?> taskRunningState =
-      ValueNotifier<Future<void>?>(null);
+  // 현재 작업 진행 상황 확인
+  Future<void>? _curTask;
 
+  // B7Pro Data Send Characteristic
   QualifiedCharacteristic get _getComandCharacteristic =>
       QualifiedCharacteristic(
         characteristicId: B7ProCommServiceCharacteristicUuid.command,
@@ -36,6 +36,7 @@ class DataSendResModel {
         deviceId: deviceID,
       );
 
+  // B7Pro Data Notiy Characteristic
   QualifiedCharacteristic get _getNotifyCharacteristic =>
       QualifiedCharacteristic(
         characteristicId: B7ProCommServiceCharacteristicUuid.rxNotify,
@@ -43,21 +44,23 @@ class DataSendResModel {
         deviceId: deviceID,
       );
 
-  void notiySubscription(Function(List<int> data) callback) {
+  void notiySubscription() {
     _dataSubscription =
-        _ble.subscribeToCharacteristic(_getNotifyCharacteristic).listen(
+        ble.subscribeToCharacteristic(_getNotifyCharacteristic).listen(
       (data) {
         debugPrint("data length : ${data.length}");
         debugPrint("data : $data");
-        if (taskRunningState.value != null) {
-          callback(data);
+        if (_curTask != null) {
+          notiyCallback(data);
         }
       },
       onDone: () {
         debugPrint("Device SubscribeToCharacteristic onDone");
+        notiyCancle();
       },
       onError: (error) {
         debugPrint("Device SubscribeToCharacteristic onError : $error");
+        notiyCancle();
       },
     );
   }
@@ -69,20 +72,19 @@ class DataSendResModel {
 
   Future<void> run() async {
     await stop();
-
     debugPrint("B7Pro Start Task!");
-    taskRunningState.value = _runTask();
+    _curTask = _runTask();
+    await _curTask;
+    // taskRunningState.value = _runTask();
   }
 
   Future<void> stop() async {
     debugPrint("B7Pro Stop Task!");
     final completer = Completer<void>();
 
-    if (taskRunningState.value != null) {
-      taskRunningState.value!.then((value) {
-        taskRunningState.value = null;
-        completer.complete();
-      });
+    if (_curTask != null) {
+      await _curTask;
+      completer.complete();
     } else {
       completer.complete();
     }
@@ -121,7 +123,7 @@ class DataSendResModel {
   Future<void> _sendCmd(List<int> value) async {
     final completer = Completer<void>();
 
-    _ble
+    ble
         .writeCharacteristicWithResponse(_getComandCharacteristic, value: value)
         .then(
           (value) => completer.complete(),
@@ -129,6 +131,7 @@ class DataSendResModel {
         .catchError(
       (onError) {
         debugPrint("onError! : $onError");
+        completer.completeError(onError);
       },
     );
 

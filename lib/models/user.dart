@@ -4,7 +4,7 @@ import 'hive_model.dart';
 
 part 'user.g.dart';
 
-@HiveType(typeId: HiveTypeId.userModel)
+@HiveType(typeId: HiveTypeId.user)
 class User {
   @HiveField(0)
   // User ID

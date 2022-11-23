@@ -1,36 +1,38 @@
 import 'dart:async';
 
+import 'package:biometric_data_monitoring/providers/device_comm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 import '../app_constant.dart';
 
-class ConnectionProvider {
-  late final String deviceID;
-
-  ConnectionProvider(this.deviceID);
-
-  final _ble = FlutterReactiveBle();
+/// DeviceConnectionModel
+/// - 디바이스 연결을 담당할 클래스
+class DeviceConnection extends DeviceCommon {
+  DeviceConnection(String deviceID) : super(deviceID);
 
   // connection state stream
   final _connectionStream = StreamController<DeviceConnectionState>.broadcast();
   StreamSubscription<ConnectionStateUpdate>? _connectSubscription;
   Stream<DeviceConnectionState> get connectState => _connectionStream.stream;
-  bool isConnected = false;
 
   // device connection timer
   Timer? _connectionTimer;
   final _connectionTimeout = const Duration(seconds: 10);
 
-  Future<void> connect(String deviceID) async {
+  Future<bool> connect() async {
+    final completer = Completer<bool>();
+
     _connectionTimer = Timer(_connectionTimeout, () {
       debugPrint("connection timeout.");
       _connectionStream.add(DeviceConnectionState.disconnected);
 
-      disConnect();
+      disConnect().then((value) {
+        completer.complete(false);
+      });
     });
 
-    _connectSubscription = _ble.connectToDevice(
+    _connectSubscription = ble.connectToDevice(
       id: deviceID,
       connectionTimeout: _connectionTimeout,
       servicesWithCharacteristicsToDiscover: {
@@ -45,7 +47,7 @@ class ConnectionProvider {
           // Connection timeout timer cancle
           _connectionTimer?.cancel();
           _connectionTimer = null;
-          isConnected = true;
+          completer.complete(true);
         }
 
         _connectionStream.add(state.connectionState);
@@ -54,20 +56,27 @@ class ConnectionProvider {
         debugPrint("Device Connect onDone");
         _connectionTimer?.cancel();
         _connectionTimer = null;
-        disConnect();
+        disConnect().then((value) {
+          completer.complete(false);
+        });
       },
       onError: (error) {
         debugPrint("Device connectToDevice error: $error");
         _connectionTimer?.cancel();
         _connectionTimer = null;
-        disConnect();
+        disConnect().then((value) {
+          completer.complete(false);
+        });
       },
     );
+
+    return completer.future;
   }
 
   Future<void> disConnect() async {
     debugPrint("B7Pro DisConnect!");
-    isConnected = false;
+
+    _connectionStream.add(DeviceConnectionState.disconnected);
     await _connectSubscription?.cancel();
     _connectSubscription = null;
   }

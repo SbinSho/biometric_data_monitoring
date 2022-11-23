@@ -5,11 +5,14 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 import '../app_constant.dart';
 
-class DeviceScanModel {
-  static final DeviceScanModel _instance = DeviceScanModel._();
-  static DeviceScanModel get instance => _instance;
+class DeviceScan {
+  static final DeviceScan _singleton = DeviceScan._internal();
 
-  DeviceScanModel._();
+  factory DeviceScan() {
+    return _singleton;
+  }
+
+  DeviceScan._internal();
 
   final _ble = FlutterReactiveBle();
 
@@ -19,13 +22,17 @@ class DeviceScanModel {
   final _bleScaningStream = StreamController<bool>.broadcast();
   final _devicesStream =
       StreamController<Map<String, DiscoveredDevice>>.broadcast();
+
   StreamSubscription? _deviceScanSubscription;
 
+  // 스캔 상태에 대한 스트림
   Stream<bool> get scanningState => _bleScaningStream.stream;
+
+  // 디바이스 스캔 목록
   Stream<Map<String, DiscoveredDevice>> get deviceDatas =>
       _devicesStream.stream;
 
-  void startScan(int scanningTime) {
+  void startScan([int scanningTime = 20]) {
     deviceInfo.clear();
     _bleScaningStream.add(true);
     _deviceScanSubscription = _ble.scanForDevices(

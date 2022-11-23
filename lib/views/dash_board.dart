@@ -15,13 +15,6 @@ class DashBoardView extends StatefulWidget {
 class _DashBoardViewState extends State<DashBoardView> {
   late final BioMonitoringProvider _bioMonitorProvider;
 
-  // Text Widget
-  final dialogTitle = const Text("사용자 등록");
-  final register = const Text("등록");
-  final cancle = const Text('취소', style: TextStyle(color: Colors.red));
-
-  final userTiles = <Widget>[];
-
   @override
   void initState() {
     super.initState();
@@ -32,22 +25,18 @@ class _DashBoardViewState extends State<DashBoardView> {
 
   @override
   Widget build(BuildContext context) {
-    userTiles.clear();
-
-    for (var user in _bioMonitorProvider.loadUsers()) {
-      userTiles.add(
-        UserTile(
-          user: user,
-        ),
-      );
-    }
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
         title: const Text("Bio Monitoring"),
       ),
       body: ListView(
-        children: userTiles,
+        children: List.generate(
+          _bioMonitorProvider.users.length,
+          (index) => UserTile(
+            user: _bioMonitorProvider.users[index],
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

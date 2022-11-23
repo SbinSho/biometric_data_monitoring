@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,7 @@ enum ChartType {
 }
 
 class RealTimeChart extends StatefulWidget {
-  final Stream<double> dataStream;
+  final Stream<ChartData> dataStream;
   final ChartType chartType;
 
   const RealTimeChart({
@@ -32,7 +33,7 @@ class _RealTimeChartState extends State<RealTimeChart> {
   late double maxY;
 
   final points = <FlSpot>[];
-  double xCount = 0;
+  double xCount = 0.0;
 
   @override
   void initState() {
@@ -63,12 +64,24 @@ class _RealTimeChartState extends State<RealTimeChart> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<double>(
+    return StreamBuilder<ChartData>(
       stream: widget.dataStream,
       builder: (context, snapshot) {
-        if (snapshot.data != null && snapshot.data! > 0) {
+        double? data;
+        if (snapshot.data != null) {
           xCount = xCount + 1.0;
-          points.add(FlSpot(xCount.toDouble(), snapshot.data!));
+          switch (widget.chartType) {
+            case ChartType.temp:
+              data = snapshot.data!.temp;
+              break;
+            case ChartType.heart:
+              data = snapshot.data!.heart;
+              break;
+            case ChartType.step:
+              data = snapshot.data!.step;
+              break;
+          }
+          points.add(FlSpot(xCount.toDouble(), data));
         }
 
         return Column(
@@ -86,14 +99,14 @@ class _RealTimeChartState extends State<RealTimeChart> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "DATA : ${snapshot.data}",
+                      "DATA : $data",
                       style: TextStyle(
                         fontSize: 21,
                         color: lineColor,
                       ),
                     ),
                     Text(
-                      DateFormat("MM-dd HH:mm:ss").format(DateTime.now()),
+                      "${snapshot.data?.timeStamp}",
                     ),
                   ],
                 ),
