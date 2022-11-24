@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:provider/provider.dart';
 
-import '../models/user.dart';
+import '../models/hive/chart_data.dart';
+import '../models/hive/user.dart';
+import '../providers/device_proceess.dart';
 import '../providers/device_scan.dart';
 import 'real_time_chart.dart';
 
@@ -21,8 +23,9 @@ class UserTile extends StatefulWidget {
 
 class _UserTileState extends State<UserTile> {
   late final User user;
-  late DeviceDataProcess? process;
   late final BioMonitoringProvider provider;
+  late DeviceDataProcess? process;
+
   @override
   void initState() {
     super.initState();
@@ -50,94 +53,12 @@ class _UserTileState extends State<UserTile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Text(
-                        user.deviceID ?? "NULL",
-                        style: Theme.of(context).textTheme.titleMedium!,
-                      ),
-                      StreamBuilder<DeviceConnectionState>(
-                        stream: process?.connectState,
-                        initialData: DeviceConnectionState.disconnected,
-                        builder: (context, snapshot) {
-                          if (snapshot.data! ==
-                              DeviceConnectionState.connected) {
-                            return Text(
-                              "Connected",
-                              style: Theme.of(context).textTheme.titleMedium!,
-                            );
-                          } else if (snapshot.data! ==
-                              DeviceConnectionState.connecting) {
-                            return Text(
-                              "Connecting",
-                              style: Theme.of(context).textTheme.titleMedium!,
-                            );
-                          } else {
-                            return Text(
-                              "Disconnected",
-                              style: Theme.of(context).textTheme.titleMedium!,
-                            );
-                          }
-                        },
-                      ),
-                      Text(
-                        "Battery",
-                        style: Theme.of(context).textTheme.titleMedium!,
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.settings,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildDeviceInfo(),
                   const SizedBox(height: 10.0),
                   Align(
                     alignment: Alignment.center,
                     child: process != null
-                        ? StreamBuilder<ChartData>(
-                            stream: process!.chartDataStream,
-                            builder: (context, snapshot) {
-                              if (snapshot.data == null) {
-                                return const CircularProgressIndicator();
-                              }
-
-                              return Wrap(
-                                spacing: 10.0,
-                                runSpacing: 10.0,
-                                direction: Axis.horizontal,
-                                children: [
-                                  SizedBox(
-                                    width: 300,
-                                    height: 200,
-                                    child: RealTimeChart(
-                                      chartType: ChartType.temp,
-                                      dataStream: process!.chartDataStream,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 300,
-                                    height: 200,
-                                    child: RealTimeChart(
-                                      chartType: ChartType.heart,
-                                      dataStream: process!.chartDataStream,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 300,
-                                    height: 200,
-                                    child: RealTimeChart(
-                                      chartType: ChartType.step,
-                                      dataStream: process!.chartDataStream,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          )
+                        ? _buildChart()
                         : ElevatedButton(
                             onPressed: () {
                               _scanDeviceDialog(context).then(
@@ -162,6 +83,65 @@ class _UserTileState extends State<UserTile> {
           ),
         ],
       ),
+    );
+  }
+
+  Row _buildDeviceInfo() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        Text(
+          "${user.deviceID}",
+          style: Theme.of(context).textTheme.titleMedium!,
+        ),
+        StreamBuilder<DeviceConnectionState>(
+          stream: process?.connectState,
+          initialData: DeviceConnectionState.disconnected,
+          builder: (context, snapshot) {
+            if (snapshot.data! == DeviceConnectionState.connected) {
+              return Text(
+                "Connected",
+                style: Theme.of(context).textTheme.titleMedium!,
+              );
+            } else if (snapshot.data! == DeviceConnectionState.connecting) {
+              return Text(
+                "Connecting",
+                style: Theme.of(context).textTheme.titleMedium!,
+              );
+            } else {
+              return Text(
+                "Disconnected",
+                style: Theme.of(context).textTheme.titleMedium!,
+              );
+            }
+          },
+        ),
+        Text(
+          "Battery",
+          style: Theme.of(context).textTheme.titleMedium!,
+        ),
+      ],
+    );
+  }
+
+  Wrap _buildChart() {
+    return Wrap(
+      spacing: 10.0,
+      runSpacing: 10.0,
+      direction: Axis.horizontal,
+      children: List.generate(ChartType.values.length, (index) {
+        return SizedBox(
+          width: 300,
+          height: 200,
+          child: RealTimeChart(
+            chartType: ChartType.values[index],
+            dataStream: process!.chartDataStream,
+            initalDatas: [
+              for (var e in process!.getBioDatas() ?? []) e as ChartData
+            ],
+          ),
+        );
+      }),
     );
   }
 
@@ -208,6 +188,7 @@ class _UserTileState extends State<UserTile> {
                                       .then((value) {
                                     if (value) {
                                       process = provider.devices[user.userID];
+                                      process!.taksRun();
                                       Navigator.of(context).pop(true);
                                     } else {
                                       Navigator.of(context).pop(false);

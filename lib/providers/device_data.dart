@@ -48,8 +48,10 @@ class DeviceSendRes extends DeviceCommon {
     _dataSubscription =
         ble.subscribeToCharacteristic(_getNotifyCharacteristic).listen(
       (data) {
+        debugPrint("Device ID : $deviceID ============================");
         debugPrint("data length : ${data.length}");
         debugPrint("data : $data");
+        debugPrint("==================================================");
         if (_curTask != null) {
           notiyCallback(data);
         }
@@ -71,11 +73,21 @@ class DeviceSendRes extends DeviceCommon {
   }
 
   Future<void> run() async {
-    await stop();
     debugPrint("B7Pro Start Task!");
+
+    final complater = Completer<void>();
+
+    if (_curTask != null) {
+      await _curTask;
+    }
+
     _curTask = _runTask();
-    await _curTask;
-    // taskRunningState.value = _runTask();
+
+    _curTask!.then((value) {
+      complater.complete();
+    });
+
+    return complater.future;
   }
 
   Future<void> stop() async {
@@ -115,8 +127,12 @@ class DeviceSendRes extends DeviceCommon {
         cleanCommands.removeAt(0);
         await Future.delayed(Duration(milliseconds: _sendCmdMs));
       }
+
+      _curTask = null;
     } catch (e) {
-      debugPrint("Task Error :$e");
+      debugPrint("Device Data RunTask Error :$e");
+      notiyCancle();
+      _curTask = null;
     }
   }
 
@@ -126,9 +142,10 @@ class DeviceSendRes extends DeviceCommon {
     ble
         .writeCharacteristicWithResponse(_getComandCharacteristic, value: value)
         .then(
-          (value) => completer.complete(),
-        )
-        .catchError(
+      (value) {
+        completer.complete();
+      },
+    ).catchError(
       (onError) {
         debugPrint("onError! : $onError");
         completer.completeError(onError);

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 
+import '../models/hive/hive_model.dart';
 import '../providers/bio_monitoring.dart';
 import 'register.dart';
 import 'user_title.dart';

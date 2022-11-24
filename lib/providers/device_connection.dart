@@ -24,9 +24,7 @@ class DeviceConnection extends DeviceCommon {
     final completer = Completer<bool>();
 
     _connectionTimer = Timer(_connectionTimeout, () {
-      debugPrint("connection timeout.");
-      _connectionStream.add(DeviceConnectionState.disconnected);
-
+      debugPrint("Device Connection timeout.");
       disConnect().then((value) {
         completer.complete(false);
       });

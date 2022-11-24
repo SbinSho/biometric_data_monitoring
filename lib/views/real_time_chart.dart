@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
-import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+
+import '../models/hive/chart_data.dart';
 
 enum ChartType {
   temp,
@@ -15,10 +15,12 @@ enum ChartType {
 class RealTimeChart extends StatefulWidget {
   final Stream<ChartData> dataStream;
   final ChartType chartType;
+  final List<ChartData>? initalDatas;
 
   const RealTimeChart({
     required this.dataStream,
     required this.chartType,
+    required this.initalDatas,
     super.key,
   });
 
@@ -35,6 +37,9 @@ class _RealTimeChartState extends State<RealTimeChart> {
   final points = <FlSpot>[];
   double xCount = 0.0;
 
+  double? _lastData;
+  String? _lastSyncTime;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +47,18 @@ class _RealTimeChartState extends State<RealTimeChart> {
   }
 
   void init() {
+    if (widget.initalDatas != null && widget.initalDatas!.isNotEmpty) {
+      for (var element in widget.initalDatas!) {
+        points.add(
+          FlSpot(xCount, _dataFiltering(element)),
+        );
+
+        xCount++;
+      }
+      _lastData = _dataFiltering(widget.initalDatas!.last);
+      _lastSyncTime = widget.initalDatas!.last.getTime();
+    }
+
     switch (widget.chartType) {
       case ChartType.temp:
         lineColor = Colors.blueAccent;
@@ -67,21 +84,13 @@ class _RealTimeChartState extends State<RealTimeChart> {
     return StreamBuilder<ChartData>(
       stream: widget.dataStream,
       builder: (context, snapshot) {
-        double? data;
         if (snapshot.data != null) {
           xCount = xCount + 1.0;
-          switch (widget.chartType) {
-            case ChartType.temp:
-              data = snapshot.data!.temp;
-              break;
-            case ChartType.heart:
-              data = snapshot.data!.heart;
-              break;
-            case ChartType.step:
-              data = snapshot.data!.step;
-              break;
-          }
-          points.add(FlSpot(xCount.toDouble(), data));
+
+          _lastData = _dataFiltering(snapshot.data!);
+          _lastSyncTime = snapshot.data!.getTime();
+
+          points.add(FlSpot(xCount.toDouble(), _lastData!));
         }
 
         return Column(
@@ -99,15 +108,13 @@ class _RealTimeChartState extends State<RealTimeChart> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "DATA : $data",
+                      "DATA : ${_lastData ?? ""}",
                       style: TextStyle(
                         fontSize: 21,
                         color: lineColor,
                       ),
                     ),
-                    Text(
-                      "${snapshot.data?.timeStamp}",
-                    ),
+                    Text("last time : ${_lastSyncTime ?? ""}"),
                   ],
                 ),
               ],
@@ -219,6 +226,18 @@ class _RealTimeChartState extends State<RealTimeChart> {
       final resultY = _minMaxFind(0, 0, [for (var e in points) e.y]);
       minY = resultY["min"]!;
       maxY = resultY["max"]! + 100.0;
+    }
+  }
+
+  double _dataFiltering(ChartData chartData) {
+    switch (widget.chartType) {
+      case ChartType.temp:
+        return chartData.temp;
+
+      case ChartType.heart:
+        return chartData.heart;
+      case ChartType.step:
+        return chartData.step;
     }
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/user.dart';
+import '../models/hive/user.dart';
 import '../providers/bio_monitoring.dart';
 
 Future<void> showRegisterDialog(

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'views/dash_board.dart';
-import 'models/hive_model.dart';
+import 'models/hive/hive_model.dart';
 
 void main() async {
   await HiveModel.init();
