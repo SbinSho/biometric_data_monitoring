@@ -35,6 +35,8 @@ class _RealTimeChartState extends State<RealTimeChart> {
   late double maxY;
 
   final points = <FlSpot>[];
+  List<ChartData> chartDatas = [];
+
   double xCount = 0.0;
 
   double? _lastData;
@@ -48,15 +50,17 @@ class _RealTimeChartState extends State<RealTimeChart> {
 
   void init() {
     if (widget.initalDatas != null && widget.initalDatas!.isNotEmpty) {
-      for (var element in widget.initalDatas!) {
+      chartDatas.addAll(widget.initalDatas!);
+
+      for (var element in chartDatas) {
         points.add(
           FlSpot(xCount, _dataFiltering(element)),
         );
 
         xCount++;
       }
-      _lastData = _dataFiltering(widget.initalDatas!.last);
-      _lastSyncTime = widget.initalDatas!.last.getTime();
+      _lastData = _dataFiltering(chartDatas.last);
+      _lastSyncTime = chartDatas.last.getTime();
     }
 
     switch (widget.chartType) {
@@ -89,6 +93,7 @@ class _RealTimeChartState extends State<RealTimeChart> {
 
           _lastData = _dataFiltering(snapshot.data!);
           _lastSyncTime = snapshot.data!.getTime();
+          chartDatas.add(snapshot.data!);
 
           points.add(FlSpot(xCount.toDouble(), _lastData!));
         }
@@ -139,7 +144,11 @@ class _RealTimeChartState extends State<RealTimeChart> {
       maxY: maxY,
       minX: 0.0,
       maxX: points.isEmpty ? 0.0 : points.last.x + 1.0,
-      lineTouchData: LineTouchData(enabled: true),
+      lineTouchData: LineTouchData(
+        enabled: true,
+        getTouchedSpotIndicator: _buildTouchSpot,
+        touchTooltipData: _buildTouchData(),
+      ),
       gridData: FlGridData(
         drawHorizontalLine: true,
       ),
@@ -185,13 +194,63 @@ class _RealTimeChartState extends State<RealTimeChart> {
           showTitles: true,
           reservedSize: 36,
           interval: 1,
-          getTitlesWidget: buildRightTitle,
+          getTitlesWidget: _buildRightTitle,
         ),
       ),
     );
   }
 
-  Widget buildRightTitle(double value, TitleMeta meta) {
+  List<TouchedSpotIndicatorData?> _buildTouchSpot(
+      LineChartBarData barData, List<int> spotIndexes) {
+    return spotIndexes.map((spotIndex) {
+      return TouchedSpotIndicatorData(
+        FlLine(color: lineColor, strokeWidth: 3),
+        FlDotData(
+          getDotPainter: (spot, percent, barData, index) {
+            return FlDotCirclePainter(
+              radius: 10,
+              color: lineColor,
+              strokeWidth: 2,
+              strokeColor: lineColor.withOpacity(.5),
+            );
+          },
+        ),
+      );
+    }).toList();
+  }
+
+  LineTouchTooltipData _buildTouchData() {
+    return LineTouchTooltipData(
+      tooltipBgColor: Colors.white,
+      getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+        return touchedBarSpots.map((barSpot) {
+          final index = barSpot.x.toInt();
+
+          return LineTooltipItem(
+            points[index].y.toStringAsFixed(2),
+            TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: lineColor,
+            ),
+            children: [
+              TextSpan(
+                text: "\n"
+                    "${chartDatas[index].getTime()}",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.normal,
+                  color: lineColor,
+                ),
+              ),
+            ],
+          );
+        }).toList();
+      },
+    );
+  }
+
+  Widget _buildRightTitle(double value, TitleMeta meta) {
     final titlesMap = <ChartType, double>{
       ChartType.temp: 36.0,
       ChartType.heart: 100.0,
@@ -233,7 +292,6 @@ class _RealTimeChartState extends State<RealTimeChart> {
     switch (widget.chartType) {
       case ChartType.temp:
         return chartData.temp;
-
       case ChartType.heart:
         return chartData.heart;
       case ChartType.step:
