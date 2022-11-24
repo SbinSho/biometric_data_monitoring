@@ -15,39 +15,34 @@ class DashBoardView extends StatefulWidget {
 }
 
 class _DashBoardViewState extends State<DashBoardView> {
-  late final BioMonitoringProvider _bioMonitorProvider;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _bioMonitorProvider =
-        Provider.of<BioMonitoringProvider>(context, listen: false);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text("Bio Monitoring"),
-      ),
-      body: ListView(
-        children: List.generate(
-          _bioMonitorProvider.users.length,
-          (index) => UserTile(
-            user: _bioMonitorProvider.users[index],
+    print("build!");
+    return Consumer<BioMonitoringProvider>(
+      builder: (context, value, child) {
+        return Scaffold(
+          appBar: AppBar(
+            centerTitle: true,
+            title: const Text("Bio Monitoring"),
           ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showRegisterDialog(context, null, _bioMonitorProvider).then((_) {
-            setState(() {});
-          });
-        },
-        child: const Icon(Icons.add),
-      ),
+          body: ListView(
+            children: List.generate(
+              value.users.length,
+              (index) => UserTile(
+                user: value.users[index],
+              ),
+            ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              showRegisterDialog(context, null, value).then((_) {
+                setState(() {});
+              });
+            },
+            child: const Icon(Icons.add),
+          ),
+        );
+      },
     );
   }
 }

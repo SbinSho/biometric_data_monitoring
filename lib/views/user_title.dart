@@ -51,7 +51,6 @@ class _UserTileState extends State<UserTile> {
             child: Padding(
               padding: const EdgeInsetsDirectional.all(10.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildDeviceInfo(),
                   const SizedBox(height: 10.0),
@@ -73,9 +72,29 @@ class _UserTileState extends State<UserTile> {
                           ),
                   ),
                   const SizedBox(height: 10.0),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: Text("통계 보기"),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          provider.deleteUser(user);
+                        },
+                        child: const Text("계정 삭제"),
+                      ),
+                      const SizedBox(width: 10.0),
+                      ElevatedButton(
+                        onPressed: () {
+                          provider.deleteDevice(user).then((value) {
+                            if (value) {
+                              setState(() {
+                                process = null;
+                              });
+                            } else {}
+                          });
+                        },
+                        child: const Text("디바이스 삭제"),
+                      ),
+                    ],
                   ),
                 ],
               ),

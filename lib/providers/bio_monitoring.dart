@@ -14,6 +14,7 @@ class BioMonitoringProvider extends ChangeNotifier {
   late final Map<String, DeviceDataProcess> devices;
 
   final Box _userBox = Hive.box(BoxType.user.boxName);
+  final Box _bioBox = Hive.box(BoxType.bio.boxName);
 
   BioMonitoringProvider() {
     users = _loadUsers();
@@ -60,6 +61,27 @@ class BioMonitoringProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteUser(User user) async {
+    try {
+      var key = user.userID.toLowerCase();
+
+      if (user.deviceID != null) {
+        await deleteDevice(user);
+      }
+
+      await _userBox.delete(key);
+      await _bioBox.delete(key);
+
+      users.remove(user);
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint("Register User Error : $e");
+      return false;
+    }
+  }
+
   Future<bool> editUser(String befreUserID, User user) async {
     if (_userBox.get(befreUserID) == null) {
       await _userBox.put(user.userID.toLowerCase(), user);
@@ -77,6 +99,24 @@ class BioMonitoringProvider extends ChangeNotifier {
 
       var process = DeviceDataProcess(user);
       devices[user.userID] = process;
+
+      return true;
+    } catch (e) {
+      debugPrint("Device register fail : $e");
+      return false;
+    }
+  }
+
+  Future<bool> deleteDevice(User user) async {
+    try {
+      user.deviceID = null;
+
+      await _userBox.delete(user.userID.toLowerCase());
+      await _userBox.put(user.userID.toLowerCase(), user);
+
+      var process = devices[user.userID];
+      await process!.taskStop();
+      devices.remove(user.userID);
 
       return true;
     } catch (e) {
