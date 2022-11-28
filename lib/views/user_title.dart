@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../models/hive/chart_data.dart';
 import '../models/hive/user.dart';
-import 'real_time_chart.dart';
+import 'bio_chart.dart';
 
 class UserTile extends StatefulWidget {
   final User user;
@@ -47,6 +47,7 @@ class _UserTileState extends State<UserTile> {
             child: Padding(
               padding: const EdgeInsetsDirectional.all(10.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildDeviceInfo(),
                   const SizedBox(height: 10.0),
@@ -99,39 +100,35 @@ class _UserTileState extends State<UserTile> {
     );
   }
 
-  Row _buildDeviceInfo() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+  Column _buildDeviceInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "${user.deviceID}",
+          "MAC : ${user.deviceID}",
           style: Theme.of(context).textTheme.titleMedium!,
         ),
         StreamBuilder<DeviceConnectionState>(
           stream: provider.connState(user),
           initialData: DeviceConnectionState.disconnected,
           builder: (context, snapshot) {
-            if (snapshot.data! == DeviceConnectionState.connected) {
-              return Text(
-                "Connected",
-                style: Theme.of(context).textTheme.titleMedium!,
-              );
-            } else if (snapshot.data! == DeviceConnectionState.connecting) {
-              return Text(
-                "Connecting",
-                style: Theme.of(context).textTheme.titleMedium!,
-              );
-            } else {
-              return Text(
-                "Disconnected",
-                style: Theme.of(context).textTheme.titleMedium!,
-              );
-            }
+            var state = snapshot.data as DeviceConnectionState;
+
+            return Text(
+              "연결 상태 : ${state.getName}",
+              style: Theme.of(context).textTheme.titleMedium!,
+            );
           },
         ),
-        Text(
-          "Battery",
-          style: Theme.of(context).textTheme.titleMedium!,
+        StreamBuilder<int>(
+          stream: provider.batteryStream(user),
+          initialData: 0,
+          builder: (context, snapshot) {
+            return Text(
+              "Battery : ${snapshot.data}%",
+              style: Theme.of(context).textTheme.titleMedium!,
+            );
+          },
         ),
       ],
     );
@@ -143,16 +140,12 @@ class _UserTileState extends State<UserTile> {
       runSpacing: 10.0,
       direction: Axis.horizontal,
       children: List.generate(ChartType.values.length, (index) {
-        return SizedBox(
-          width: 300,
-          height: 200,
-          child: RealTimeChart(
-            chartType: ChartType.values[index],
-            dataStream: provider.chartDataStream(user)!,
-            initalDatas: [
-              for (var e in provider.getBioDatas(user) ?? []) e as ChartData
-            ],
-          ),
+        return BioChart(
+          chartType: ChartType.values[index],
+          dataStream: provider.chartDataStream(user)!,
+          initalDatas: [
+            for (var e in provider.getBioDatas(user) ?? []) e as ChartData
+          ],
         );
       }),
     );

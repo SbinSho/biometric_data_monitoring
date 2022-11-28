@@ -32,10 +32,12 @@ class BioMonitoringProvider extends ChangeNotifier {
 
   // Device Connection 상태
   Stream<DeviceConnectionState>? connState(User user) =>
-      devices[user.userID]?.connectState;
+      devices[user.key]?.connectState;
 
   Stream<ChartData>? chartDataStream(User user) =>
-      devices[user.userID]?.dataStream;
+      devices[user.key]?.dataStream;
+
+  Stream<int>? batteryStream(User user) => devices[user.key]?.batteryStream;
 
   BioMonitoringProvider() {
     users = _loadUsers();
@@ -65,9 +67,9 @@ class BioMonitoringProvider extends ChangeNotifier {
     for (var user in users) {
       if (user.deviceID != null) {
         var process = DeviceDataProcess(user);
-        process.taksRun();
-        devices[user.userID] = process;
-        usedDevices.add(user.userID);
+        devices[user.key] = process;
+        usedDevices.add(user.deviceID!);
+        process.taksStart();
       }
     }
 
@@ -77,7 +79,7 @@ class BioMonitoringProvider extends ChangeNotifier {
   // 아이디 중복 체크
   bool idCheck(String id) {
     try {
-      final overlapUser = _userBox.get(id.toLowerCase());
+      final overlapUser = _userBox.get(id);
 
       if (overlapUser != null) {
         return false;
@@ -93,11 +95,11 @@ class BioMonitoringProvider extends ChangeNotifier {
   // 사용자 등록
   Future<bool> registerUser(User user) async {
     try {
-      if (!idCheck(user.userID)) {
+      if (!idCheck(user.key)) {
         return false;
       }
       // save data
-      await _userBox.put(user.userID.toLowerCase(), user);
+      await _userBox.put(user.key, user);
       users.add(user);
 
       return true;
@@ -110,14 +112,12 @@ class BioMonitoringProvider extends ChangeNotifier {
   // 사용자 삭제
   Future<bool> deleteUser(User user) async {
     try {
-      var key = user.userID.toLowerCase();
-
       if (user.deviceID != null) {
         await deleteDevice(user);
       }
 
-      await _userBox.delete(key);
-      await _bioBox.delete(key);
+      await _userBox.delete(user.key);
+      await _bioBox.delete(user.key);
 
       users.remove(user);
 
@@ -132,7 +132,7 @@ class BioMonitoringProvider extends ChangeNotifier {
   // 사용자 수정
   Future<bool> editUser(String befreUserID, User user) async {
     if (_userBox.get(befreUserID) == null) {
-      await _userBox.put(user.userID.toLowerCase(), user);
+      await _userBox.put(user.key, user);
     } else {}
 
     return true;
@@ -144,12 +144,12 @@ class BioMonitoringProvider extends ChangeNotifier {
       user.deviceID = deviceID;
       usedDevices.add(deviceID);
 
-      await _userBox.delete(user.userID.toLowerCase());
-      await _userBox.put(user.userID.toLowerCase(), user);
+      await _userBox.delete(user.key);
+      await _userBox.put(user.key, user);
 
       var process = DeviceDataProcess(user);
-      process.taksRun();
-      devices[user.userID] = process;
+      process.taksStart();
+      devices[user.key] = process;
 
       return true;
     } catch (e) {
@@ -164,12 +164,12 @@ class BioMonitoringProvider extends ChangeNotifier {
       usedDevices.remove(user.deviceID);
       user.deviceID = null;
 
-      await _userBox.delete(user.userID.toLowerCase());
-      await _userBox.put(user.userID.toLowerCase(), user);
+      await _userBox.delete(user.key);
+      await _userBox.put(user.key, user);
 
-      var process = devices[user.userID];
+      var process = devices[user.key];
       await process!.taskStop();
-      devices.remove(user.userID);
+      devices.remove(user.key);
 
       return true;
     } catch (e) {
@@ -181,5 +181,29 @@ class BioMonitoringProvider extends ChangeNotifier {
   void startScan() => _scanModel.startScan();
   void stopScan() => _scanModel.stopScan();
 
-  List? getBioDatas(User user) => _bioBox.get(user.userID);
+  List? getBioDatas(User user) => _bioBox.get(user.key);
+
+  @override
+  void dispose() async {
+    debugPrint("Bio Monitoring Dispose!");
+    super.dispose();
+    for (var element in devices.entries) {
+      await element.value.taskStop();
+    }
+  }
+}
+
+extension ConnectionStateName on DeviceConnectionState {
+  String get getName {
+    switch (this) {
+      case DeviceConnectionState.connecting:
+        return "연결중";
+      case DeviceConnectionState.connected:
+        return "연결됨";
+      case DeviceConnectionState.disconnecting:
+        return "연결해제중";
+      case DeviceConnectionState.disconnected:
+        return "연결해제됨";
+    }
+  }
 }

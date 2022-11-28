@@ -21,14 +21,25 @@ class Main extends StatefulWidget {
   State<Main> createState() => _MainState();
 }
 
-class _MainState extends State<Main> {
+class _MainState extends State<Main> with WidgetsBindingObserver {
   late final BioMonitoringProvider _bioMonitorProvder;
 
   @override
   void initState() {
     super.initState();
-
+    WidgetsBinding.instance.addObserver(this);
     _bioMonitorProvder = BioMonitoringProvider();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+  }
+
+  @override
+  void dispose() async {
+    super.dispose();
+    WidgetsBinding.instance.removeObserver(this);
   }
 
   @override

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+
 import 'package:provider/provider.dart';
 
-import '../models/hive/hive_model.dart';
 import '../providers/bio_monitoring.dart';
 import 'register.dart';
 import 'user_title.dart';
@@ -17,7 +16,6 @@ class DashBoardView extends StatefulWidget {
 class _DashBoardViewState extends State<DashBoardView> {
   @override
   Widget build(BuildContext context) {
-    print("build!");
     return Consumer<BioMonitoringProvider>(
       builder: (context, value, child) {
         return Scaffold(

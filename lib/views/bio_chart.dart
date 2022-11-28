@@ -12,12 +12,12 @@ enum ChartType {
   step,
 }
 
-class RealTimeChart extends StatefulWidget {
+class BioChart extends StatefulWidget {
   final Stream<ChartData> dataStream;
   final ChartType chartType;
-  final List<ChartData>? initalDatas;
+  final List<ChartData> initalDatas;
 
-  const RealTimeChart({
+  const BioChart({
     required this.dataStream,
     required this.chartType,
     required this.initalDatas,
@@ -25,10 +25,10 @@ class RealTimeChart extends StatefulWidget {
   });
 
   @override
-  State<RealTimeChart> createState() => _RealTimeChartState();
+  State<BioChart> createState() => _BioChartState();
 }
 
-class _RealTimeChartState extends State<RealTimeChart> {
+class _BioChartState extends State<BioChart> {
   late Color lineColor;
 
   late double minY;
@@ -49,8 +49,8 @@ class _RealTimeChartState extends State<RealTimeChart> {
   }
 
   void init() {
-    if (widget.initalDatas != null && widget.initalDatas!.isNotEmpty) {
-      chartDatas.addAll(widget.initalDatas!);
+    if (widget.initalDatas.isNotEmpty) {
+      chartDatas.addAll(widget.initalDatas);
 
       for (var element in chartDatas) {
         points.add(
@@ -89,48 +89,52 @@ class _RealTimeChartState extends State<RealTimeChart> {
       stream: widget.dataStream,
       builder: (context, snapshot) {
         if (snapshot.data != null) {
-          xCount = xCount + 1.0;
-
           _lastData = _dataFiltering(snapshot.data!);
           _lastSyncTime = snapshot.data!.getTime();
-          chartDatas.add(snapshot.data!);
 
+          chartDatas.add(snapshot.data!);
           points.add(FlSpot(xCount.toDouble(), _lastData!));
+
+          xCount = xCount + 1.0;
         }
 
-        return Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  widget.chartType.toString().split(".").last.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 30,
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      "DATA : ${_lastData ?? ""}",
-                      style: TextStyle(
-                        fontSize: 21,
-                        color: lineColor,
-                      ),
+        return SizedBox(
+          width: 300,
+          height: 200,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.chartType.toString().split(".").last.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 30,
                     ),
-                    Text("last time : ${_lastSyncTime ?? ""}"),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 10.0),
-            Expanded(
-              child: LineChart(
-                _chartData(),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "DATA : ${_lastData ?? ""}",
+                        style: TextStyle(
+                          fontSize: 21,
+                          color: lineColor,
+                        ),
+                      ),
+                      Text("last time : ${_lastSyncTime ?? ""}"),
+                    ],
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 10.0),
+              Expanded(
+                child: LineChart(
+                  _chartData(),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );

@@ -21,6 +21,8 @@ class User {
 
   User(this.userID, this.deviceID, this.interval, this.registerTime);
 
+  String get key => userID.toLowerCase();
+
   @override
   String toString() =>
       "userID : $userID, deviceID : $deviceID, interval: $interval, registerTime : $registerTime";
