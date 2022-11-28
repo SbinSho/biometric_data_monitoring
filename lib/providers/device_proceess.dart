@@ -4,16 +4,20 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../app_constant.dart';
 import '../models/hive/chart_data.dart';
 import '../models/hive/hive_model.dart';
 import '../models/hive/user.dart';
-import 'device_connection.dart';
-import 'device_data.dart';
 
 /// DeviceDataProcess
 /// - 사용자별 B7Pro 디바이스 Data 관련 작업을 담당할 클래스
 class DeviceDataProcess {
-  late User user;
+  late final User user;
+  // Device Connection 작업 담당 클래스
+  late _DeviceConnection _connectionModel;
+  // Device Data 처리 작업 작업 담당 클래스
+  late _DeviceData _dataModel;
+
   final Box _bioBox = Hive.box(BoxType.bio.boxName);
 
   double _lastTemp = 0.0;
@@ -21,32 +25,27 @@ class DeviceDataProcess {
   double _lastStep = 0.0;
   DateTime _lastTimeStamp = DateTime.now();
 
-  final StreamController<ChartData> _chartStream = StreamController.broadcast();
-
   // 작업 타이머
   Timer? _taskTimer;
   // 현재 진행중인 작업 유무
   Future<void>? _curTask;
 
-  // Device Connection 작업 담당 클래스
-  DeviceConnection? _connectionModel;
-  // Device Data 처리 작업 작업 담당 클래스
-  DeviceSendRes? _dataModel;
+  final StreamController<ChartData> _chartStream = StreamController.broadcast();
 
   DeviceDataProcess(this.user) {
     if (user.deviceID == null) {
       throw "User Device ID is null";
     }
 
-    _dataModel = DeviceSendRes(user.deviceID!, _notiyCallback);
-    _connectionModel = DeviceConnection(user.deviceID!);
+    _dataModel = _DeviceData(user.deviceID!, _notiyCallback);
+    _connectionModel = _DeviceConnection(user.deviceID!);
   }
 
   // Device Connection 상태
-  Stream<DeviceConnectionState>? get connectState =>
-      _connectionModel?.connectState;
+  Stream<DeviceConnectionState> get connectState =>
+      _connectionModel.connectState;
 
-  Stream<ChartData> get chartDataStream => _chartStream.stream;
+  Stream<ChartData> get dataStream => _chartStream.stream;
 
   bool db = false;
 
@@ -80,10 +79,10 @@ class DeviceDataProcess {
   Future<void> _task() async {
     final completer = Completer<void>();
 
-    while (!await _connectionModel!.connect()) {}
+    while (!await _connectionModel.connect()) {}
 
-    _dataModel!.notiySubscription();
-    _dataModel!.run().then((value) async {
+    _dataModel.notiySubscription();
+    _dataModel.run().then((value) async {
       int dataCount = 0;
       while (true) {
         if (dataCount > 10) {
@@ -100,8 +99,8 @@ class DeviceDataProcess {
         _bioSave();
       }
 
-      _dataModel!.notiyCancle();
-      await _connectionModel!.disConnect();
+      _dataModel.notiyCancle();
+      await _connectionModel.disConnect();
 
       _curTask = null;
       completer.complete();
@@ -109,8 +108,6 @@ class DeviceDataProcess {
 
     return completer.future;
   }
-
-  List? getBioDatas() => _bioBox.get(user.userID);
 
   void _bioSave() {
     var chartData = ChartData(
@@ -128,10 +125,8 @@ class DeviceDataProcess {
 
   void _notiyCallback(List<int> data) {
     if (data.length == 4) {
-      // _heartStream.add(data.last.toDouble());
       _lastHeart = data.last.toDouble();
     } else if (data.length == 13) {
-      // _tempStream.add(_parsingTempData(data));
       _lastTemp = _parsingTempData(data);
     } else if (data.length == 18) {
       _lastStep = data.last.toDouble();
@@ -149,5 +144,236 @@ class DeviceDataProcess {
     }
 
     return 0.0;
+  }
+}
+
+class _DeviceCommon {
+  final ble = FlutterReactiveBle();
+  late final String deviceID;
+
+  _DeviceCommon(this.deviceID);
+}
+
+/// DataSendResModel
+/// - B7Pro와 송수신을 담당할 클래스
+class _DeviceData extends _DeviceCommon {
+  final _bodyTemp = 0x24;
+  final _heartRate = 0xE5;
+  final _stepCount = 0XB1;
+  final _btCmdStart = 0x01;
+  final _hrCmdStart = 0x11;
+  final _hrCmdStop = 0x00;
+  // command send 대기 시간
+  final _sendCmdMs = 1000;
+
+  late final Function(List<int> data) notiyCallback;
+
+  _DeviceData(String deviceID, this.notiyCallback) : super(deviceID);
+
+  // B7Pro의 알림 채널 구독
+  StreamSubscription<List<int>>? _dataSubscription;
+
+  // 현재 작업 진행 상황 확인
+  Future<void>? _curTask;
+
+  // B7Pro Data Send Characteristic
+  QualifiedCharacteristic get _getComandCharacteristic =>
+      QualifiedCharacteristic(
+        characteristicId: B7ProCommServiceCharacteristicUuid.command,
+        serviceId: B7ProServiceUuid.comm,
+        deviceId: deviceID,
+      );
+
+  // B7Pro Data Notiy Characteristic
+  QualifiedCharacteristic get _getNotifyCharacteristic =>
+      QualifiedCharacteristic(
+        characteristicId: B7ProCommServiceCharacteristicUuid.rxNotify,
+        serviceId: B7ProServiceUuid.comm,
+        deviceId: deviceID,
+      );
+
+  void notiySubscription() {
+    _dataSubscription =
+        ble.subscribeToCharacteristic(_getNotifyCharacteristic).listen(
+      (data) {
+        debugPrint("Device ID : $deviceID ============================");
+        debugPrint("data length : ${data.length}");
+        debugPrint("data : $data");
+        debugPrint("==================================================");
+        if (_curTask != null) {
+          notiyCallback(data);
+        }
+      },
+      onDone: () {
+        debugPrint("Device SubscribeToCharacteristic onDone");
+        notiyCancle();
+      },
+      onError: (error) {
+        debugPrint("Device SubscribeToCharacteristic onError : $error");
+        notiyCancle();
+      },
+    );
+  }
+
+  void notiyCancle() {
+    _dataSubscription?.cancel();
+    _dataSubscription = null;
+  }
+
+  Future<void> run() async {
+    debugPrint("B7Pro Start Task!");
+
+    final complater = Completer<void>();
+
+    if (_curTask != null) {
+      await _curTask;
+    }
+
+    _curTask = _runTask();
+
+    _curTask!.then((value) {
+      complater.complete();
+    });
+
+    return complater.future;
+  }
+
+  Future<void> stop() async {
+    debugPrint("B7Pro Stop Task!");
+    final completer = Completer<void>();
+
+    if (_curTask != null) {
+      await _curTask;
+      completer.complete();
+    } else {
+      completer.complete();
+    }
+
+    return completer.future;
+  }
+
+  Future<void> _runTask() async {
+    try {
+      var commnads = [
+        [_bodyTemp, _btCmdStart],
+        [_heartRate, _hrCmdStart],
+        [_stepCount],
+      ];
+
+      var cleanCommands = [
+        [_heartRate, _hrCmdStop]
+      ];
+
+      while (commnads.isNotEmpty) {
+        await _sendCmd(commnads.first);
+        commnads.removeAt(0);
+        await Future.delayed(Duration(milliseconds: _sendCmdMs));
+      }
+
+      while (cleanCommands.isNotEmpty) {
+        await _sendCmd(cleanCommands.first);
+        cleanCommands.removeAt(0);
+        await Future.delayed(Duration(milliseconds: _sendCmdMs));
+      }
+
+      _curTask = null;
+    } catch (e) {
+      debugPrint("Device Data RunTask Error :$e");
+      notiyCancle();
+      _curTask = null;
+    }
+  }
+
+  Future<void> _sendCmd(List<int> value) async {
+    final completer = Completer<void>();
+
+    ble
+        .writeCharacteristicWithResponse(_getComandCharacteristic, value: value)
+        .then(
+      (value) {
+        completer.complete();
+      },
+    ).catchError(
+      (onError) {
+        debugPrint("onError! : $onError");
+        completer.completeError(onError);
+      },
+    );
+
+    return completer.future;
+  }
+}
+
+/// DeviceConnectionModel
+/// - 디바이스 연결을 담당할 클래스
+class _DeviceConnection extends _DeviceCommon {
+  _DeviceConnection(String deviceID) : super(deviceID);
+
+  // connection state stream
+  final _connectionStream = StreamController<DeviceConnectionState>.broadcast();
+  StreamSubscription<ConnectionStateUpdate>? _connectSubscription;
+  Stream<DeviceConnectionState> get connectState => _connectionStream.stream;
+
+  // device connection timer
+  Timer? _connectionTimer;
+  final _connectionTimeout = const Duration(seconds: 10);
+
+  Future<bool> connect() async {
+    final completer = Completer<bool>();
+
+    _connectionTimer = Timer(_connectionTimeout, () {
+      debugPrint("Device Connection timeout.");
+      disConnect().then((value) {
+        completer.complete(false);
+      });
+    });
+
+    _connectSubscription = ble.connectToDevice(
+      id: deviceID,
+      connectionTimeout: _connectionTimeout,
+      servicesWithCharacteristicsToDiscover: {
+        B7ProServiceUuid.comm: [
+          B7ProCommServiceCharacteristicUuid.command,
+          B7ProCommServiceCharacteristicUuid.rxNotify,
+        ]
+      },
+    ).listen(
+      (state) {
+        if (state.connectionState == DeviceConnectionState.connected) {
+          // Connection timeout timer cancle
+          _connectionTimer?.cancel();
+          _connectionTimer = null;
+          completer.complete(true);
+        }
+
+        _connectionStream.add(state.connectionState);
+      },
+      onDone: () {
+        debugPrint("Device Connect onDone");
+        _connectionTimer?.cancel();
+        _connectionTimer = null;
+        disConnect().then((value) {
+          completer.complete(false);
+        });
+      },
+      onError: (error) {
+        debugPrint("Device connectToDevice error: $error");
+        _connectionTimer?.cancel();
+        _connectionTimer = null;
+        disConnect().then((value) {
+          completer.complete(false);
+        });
+      },
+    );
+
+    return completer.future;
+  }
+
+  Future<void> disConnect() async {
+    debugPrint("B7Pro DisConnect!");
+
+    _connectionStream.add(DeviceConnectionState.disconnected);
+    await _connectSubscription?.cancel();
+    _connectSubscription = null;
   }
 }

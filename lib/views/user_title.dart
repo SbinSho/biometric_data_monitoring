@@ -5,8 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../models/hive/chart_data.dart';
 import '../models/hive/user.dart';
-import '../providers/device_proceess.dart';
-import '../providers/device_scan.dart';
 import 'real_time_chart.dart';
 
 class UserTile extends StatefulWidget {
@@ -24,14 +22,12 @@ class UserTile extends StatefulWidget {
 class _UserTileState extends State<UserTile> {
   late final User user;
   late final BioMonitoringProvider provider;
-  late DeviceDataProcess? process;
 
   @override
   void initState() {
     super.initState();
     user = widget.user;
     provider = Provider.of<BioMonitoringProvider>(context, listen: false);
-    process = provider.devices[user.userID];
   }
 
   @override
@@ -56,7 +52,7 @@ class _UserTileState extends State<UserTile> {
                   const SizedBox(height: 10.0),
                   Align(
                     alignment: Alignment.center,
-                    child: process != null
+                    child: user.deviceID != null
                         ? _buildChart()
                         : ElevatedButton(
                             onPressed: () {
@@ -86,9 +82,7 @@ class _UserTileState extends State<UserTile> {
                         onPressed: () {
                           provider.deleteDevice(user).then((value) {
                             if (value) {
-                              setState(() {
-                                process = null;
-                              });
+                              setState(() {});
                             } else {}
                           });
                         },
@@ -114,7 +108,7 @@ class _UserTileState extends State<UserTile> {
           style: Theme.of(context).textTheme.titleMedium!,
         ),
         StreamBuilder<DeviceConnectionState>(
-          stream: process?.connectState,
+          stream: provider.connState(user),
           initialData: DeviceConnectionState.disconnected,
           builder: (context, snapshot) {
             if (snapshot.data! == DeviceConnectionState.connected) {
@@ -154,9 +148,9 @@ class _UserTileState extends State<UserTile> {
           height: 200,
           child: RealTimeChart(
             chartType: ChartType.values[index],
-            dataStream: process!.chartDataStream,
+            dataStream: provider.chartDataStream(user)!,
             initalDatas: [
-              for (var e in process!.getBioDatas() ?? []) e as ChartData
+              for (var e in provider.getBioDatas(user) ?? []) e as ChartData
             ],
           ),
         );
@@ -165,8 +159,7 @@ class _UserTileState extends State<UserTile> {
   }
 
   Future<bool?> _scanDeviceDialog(BuildContext context) async {
-    var scanModel = DeviceScan();
-    scanModel.startScan();
+    provider.startScan();
 
     return await showModalBottomSheet<bool?>(
       context: context,
@@ -192,22 +185,23 @@ class _UserTileState extends State<UserTile> {
                   child: Column(
                     children: [
                       StreamBuilder<Map<String, DiscoveredDevice>>(
-                        stream: scanModel.deviceDatas,
+                        stream: provider.scanResults,
                         initialData: const {},
                         builder: (context, snapshot) {
                           var widgets = <Widget>[];
 
                           for (var element in snapshot.data!.entries) {
+                            if (provider.usedDevices.contains(element.key)) {
+                              continue;
+                            }
                             widgets.add(
                               InkWell(
                                 onTap: () {
-                                  scanModel.stopScan();
+                                  provider.startScan();
                                   provider
                                       .registerDevice(user, element.value.id)
                                       .then((value) {
                                     if (value) {
-                                      process = provider.devices[user.userID];
-                                      process!.taksRun();
                                       Navigator.of(context).pop(true);
                                     } else {
                                       Navigator.of(context).pop(false);
@@ -235,17 +229,17 @@ class _UserTileState extends State<UserTile> {
               ),
               const SizedBox(height: 10.0),
               StreamBuilder(
-                stream: scanModel.scanningState,
+                stream: provider.scanningState,
                 initialData: false,
                 builder: (context, snapshot) {
                   if (snapshot.data!) {
                     return ElevatedButton(
-                      onPressed: scanModel.stopScan,
+                      onPressed: provider.stopScan,
                       child: const CircularProgressIndicator(),
                     );
                   } else {
                     return ElevatedButton(
-                      onPressed: scanModel.startScan,
+                      onPressed: provider.startScan,
                       child: const Text("재검색"),
                     );
                   }
