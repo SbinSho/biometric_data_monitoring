@@ -73,9 +73,9 @@ class HiveModel {
     }
     debugPrint("==============================================");
 
-    // for (var element in BoxType.values) {
-    //   await Hive.deleteBoxFromDisk(element.boxName);
-    //   await Hive.openBox(element.boxName);
-    // }
+    for (var element in BoxType.values) {
+      await Hive.deleteBoxFromDisk(element.boxName);
+      await Hive.openBox(element.boxName);
+    }
   }
 }

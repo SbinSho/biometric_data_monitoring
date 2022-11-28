@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/hive/chart_data.dart';
 import '../models/hive/user.dart';
 import 'bio_chart.dart';
+import 'register.dart';
 
 class UserTile extends StatefulWidget {
   final User user;
@@ -47,50 +48,73 @@ class _UserTileState extends State<UserTile> {
             child: Padding(
               padding: const EdgeInsetsDirectional.all(10.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildDeviceInfo(),
                   const SizedBox(height: 10.0),
-                  Align(
-                    alignment: Alignment.center,
-                    child: user.deviceID != null
-                        ? _buildChart()
-                        : ElevatedButton(
-                            onPressed: () {
-                              _scanDeviceDialog(context).then(
-                                (value) {
-                                  if (value != null || value == true) {
-                                    setState(() {});
-                                  }
+                  user.deviceID == null
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  registerDevice(context, user, provider)
+                                      .then((value) {
+                                    if (value != null && value) {
+                                      setState(() {});
+                                    }
+                                  });
                                 },
-                              );
-                            },
-                            child: const Text("디바이스 추가"),
-                          ),
-                  ),
-                  const SizedBox(height: 10.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          provider.deleteUser(user);
-                        },
-                        child: const Text("계정 삭제"),
-                      ),
-                      const SizedBox(width: 10.0),
-                      ElevatedButton(
-                        onPressed: () {
-                          provider.deleteDevice(user).then((value) {
-                            if (value) {
-                              setState(() {});
-                            } else {}
-                          });
-                        },
-                        child: const Text("디바이스 삭제"),
-                      ),
-                    ],
-                  ),
+                                child: const Text("디바이스 추가"),
+                              ),
+                            ),
+                            const SizedBox(width: 10.0),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {},
+                                child: const Text("통계 보기"),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            Align(
+                              alignment: Alignment.center,
+                              child: _buildChart(),
+                            ),
+                            const SizedBox(height: 10.0),
+                            Wrap(
+                              spacing: 10.0,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {
+                                    provider.deleteUser(user);
+                                  },
+                                  child: const Text("계정 삭제"),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    provider.deleteUser(user);
+                                  },
+                                  child: const Text("디바이스 삭제"),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    registerUser(context, user, provider)
+                                        .then((value) {
+                                      setState(() {});
+                                    });
+                                  },
+                                  child: const Text("설정 변경"),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {},
+                                  child: const Text("통계 보기"),
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
                 ],
               ),
             ),
@@ -100,41 +124,60 @@ class _UserTileState extends State<UserTile> {
     );
   }
 
-  Column _buildDeviceInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "MAC : ${user.deviceID}",
-          style: Theme.of(context).textTheme.titleMedium!,
-        ),
-        StreamBuilder<DeviceConnectionState>(
-          stream: provider.connState(user),
-          initialData: DeviceConnectionState.disconnected,
-          builder: (context, snapshot) {
-            var state = snapshot.data as DeviceConnectionState;
+  Widget _buildDeviceInfo() {
+    return user.deviceID == null
+        ? const SizedBox(
+            width: 0,
+            height: 0,
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Text(
+                "${user.deviceID}",
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              StreamBuilder<DeviceConnectionState>(
+                stream: provider.connState(user),
+                initialData: DeviceConnectionState.disconnected,
+                builder: (context, snapshot) {
+                  var state = snapshot.data as DeviceConnectionState;
 
-            return Text(
-              "연결 상태 : ${state.getName}",
-              style: Theme.of(context).textTheme.titleMedium!,
-            );
-          },
-        ),
-        StreamBuilder<int>(
-          stream: provider.batteryStream(user),
-          initialData: 0,
-          builder: (context, snapshot) {
-            return Text(
-              "Battery : ${snapshot.data}%",
-              style: Theme.of(context).textTheme.titleMedium!,
-            );
-          },
-        ),
-      ],
-    );
+                  TextStyle style = Theme.of(context).textTheme.titleMedium!;
+
+                  if (state == DeviceConnectionState.disconnected) {
+                    style = Theme.of(context).textTheme.titleMedium!.copyWith(
+                          color: Colors.redAccent,
+                        );
+                  }
+
+                  return Text(state.getName, style: style);
+                },
+              ),
+              user.interval == 0
+                  ? Text(
+                      "수집간격 : 실시간",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    )
+                  : Text(
+                      "수집간격 : ${user.interval}분",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+              StreamBuilder<int>(
+                stream: provider.batteryStream(user),
+                initialData: 0,
+                builder: (context, snapshot) {
+                  return Text(
+                    "${snapshot.data}%",
+                    style: Theme.of(context).textTheme.titleMedium,
+                  );
+                },
+              ),
+            ],
+          );
   }
 
-  Wrap _buildChart() {
+  Widget _buildChart() {
     return Wrap(
       spacing: 10.0,
       runSpacing: 10.0,
@@ -142,106 +185,12 @@ class _UserTileState extends State<UserTile> {
       children: List.generate(ChartType.values.length, (index) {
         return BioChart(
           chartType: ChartType.values[index],
-          dataStream: provider.chartDataStream(user)!,
+          dataStream: provider.chartDataStream(user),
           initalDatas: [
             for (var e in provider.getBioDatas(user) ?? []) e as ChartData
           ],
         );
       }),
-    );
-  }
-
-  Future<bool?> _scanDeviceDialog(BuildContext context) async {
-    provider.startScan();
-
-    return await showModalBottomSheet<bool?>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(50.0),
-          topRight: Radius.circular(50.0),
-        ),
-      ),
-      builder: (context) {
-        return Container(
-          margin: const EdgeInsetsDirectional.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                "디바이스 목록",
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              const SizedBox(height: 10.0),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      StreamBuilder<Map<String, DiscoveredDevice>>(
-                        stream: provider.scanResults,
-                        initialData: const {},
-                        builder: (context, snapshot) {
-                          var widgets = <Widget>[];
-
-                          for (var element in snapshot.data!.entries) {
-                            if (provider.usedDevices.contains(element.key)) {
-                              continue;
-                            }
-                            widgets.add(
-                              InkWell(
-                                onTap: () {
-                                  provider.startScan();
-                                  provider
-                                      .registerDevice(user, element.value.id)
-                                      .then((value) {
-                                    if (value) {
-                                      Navigator.of(context).pop(true);
-                                    } else {
-                                      Navigator.of(context).pop(false);
-                                    }
-                                  });
-                                },
-                                child: ListTile(
-                                  title: Text(element.value.name),
-                                  subtitle: Text(element.value.id),
-                                  trailing:
-                                      Text("rssi : ${element.value.rssi}"),
-                                ),
-                              ),
-                            );
-                          }
-
-                          return Column(
-                            children: widgets,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10.0),
-              StreamBuilder(
-                stream: provider.scanningState,
-                initialData: false,
-                builder: (context, snapshot) {
-                  if (snapshot.data!) {
-                    return ElevatedButton(
-                      onPressed: provider.stopScan,
-                      child: const CircularProgressIndicator(),
-                    );
-                  } else {
-                    return ElevatedButton(
-                      onPressed: provider.startScan,
-                      child: const Text("재검색"),
-                    );
-                  }
-                },
-              )
-            ],
-          ),
-        );
-      },
     );
   }
 }

@@ -13,7 +13,7 @@ enum ChartType {
 }
 
 class BioChart extends StatefulWidget {
-  final Stream<ChartData> dataStream;
+  final Stream<ChartData>? dataStream;
   final ChartType chartType;
   final List<ChartData> initalDatas;
 
@@ -88,6 +88,29 @@ class _BioChartState extends State<BioChart> {
     return StreamBuilder<ChartData>(
       stream: widget.dataStream,
       builder: (context, snapshot) {
+        if (snapshot.data == null && chartDatas.isEmpty) {
+          return SizedBox(
+            width: 300,
+            height: 200,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.chartType.toString().split(".").last.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 30,
+                  ),
+                ),
+                const Expanded(
+                  child: Center(
+                    child: Text("수집 된 데이터가 존재하지 않습니다."),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         if (snapshot.data != null) {
           _lastData = _dataFiltering(snapshot.data!);
           _lastSyncTime = snapshot.data!.getTime();

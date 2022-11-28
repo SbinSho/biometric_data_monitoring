@@ -16,31 +16,24 @@ class DashBoardView extends StatefulWidget {
 class _DashBoardViewState extends State<DashBoardView> {
   @override
   Widget build(BuildContext context) {
-    return Consumer<BioMonitoringProvider>(
-      builder: (context, value, child) {
-        return Scaffold(
-          appBar: AppBar(
-            centerTitle: true,
-            title: const Text("Bio Monitoring"),
-          ),
-          body: ListView(
-            children: List.generate(
-              value.users.length,
-              (index) => UserTile(
-                user: value.users[index],
-              ),
-            ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              showRegisterDialog(context, null, value).then((_) {
-                setState(() {});
-              });
-            },
-            child: const Icon(Icons.add),
-          ),
-        );
-      },
+    var bioProvider = Provider.of<BioMonitoringProvider>(context);
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text("Bio Monitoring"),
+      ),
+      body: ListView(
+        children: [
+          for (var user in bioProvider.users.entries)
+            UserTile(user: user.value),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          registerUser(context, null, bioProvider);
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
