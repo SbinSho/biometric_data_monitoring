@@ -16,8 +16,9 @@ class BioMonitoringProvider extends ChangeNotifier {
   late Map<String, User> users;
   late final Map<String, DeviceDataProcess> devices;
 
-  final Box _userBox = Hive.box(BoxType.user.boxName);
-  final Box _bioBox = Hive.box(BoxType.bio.boxName);
+  final _userBox = Hive.box(BoxType.user.boxName);
+  final _bioBox = Hive.box(BoxType.bio.boxName);
+  final _statisticsBox = Hive.box(BoxType.statistics.boxName);
 
   final DeviceScan _scanModel = DeviceScan();
   // 사용중인 디바이스 목록
@@ -122,7 +123,7 @@ class BioMonitoringProvider extends ChangeNotifier {
       await _userBox.delete(user.key);
       await _bioBox.delete(user.key);
 
-      users.remove(user);
+      users.remove(user.key);
 
       notifyListeners();
       return true;
@@ -207,7 +208,29 @@ class BioMonitoringProvider extends ChangeNotifier {
   void startScan() => _scanModel.startScan();
   void stopScan() => _scanModel.stopScan();
 
-  List? getBioDatas(User user) => _bioBox.get(user.key);
+  List? getStatics(User user) {
+    return _bioBox.get(user.key);
+  }
+
+  Iterable<ChartData> getLastBioDatas(User user) {
+    var values = _bioBox.get(user.key);
+    var results = <ChartData>[];
+
+    if (values == null) {
+      return [];
+    }
+
+    var legnthCount = 30;
+    for (var i = values.length - 1; i >= 0; i--) {
+      if (legnthCount == 0) {
+        break;
+      }
+      legnthCount--;
+      results.add(values[i] as ChartData);
+    }
+
+    return results.reversed;
+  }
 
   @override
   void dispose() async {

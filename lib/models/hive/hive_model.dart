@@ -56,6 +56,7 @@ class HiveModel {
 
     await Hive.openBox(BoxType.user.boxName);
     await Hive.openBox(BoxType.bio.boxName);
+    await Hive.openBox(BoxType.statistics.boxName);
 
     debugPrint("User Box =====================================");
     for (var element in Hive.box(BoxType.user.boxName).values) {
@@ -73,9 +74,17 @@ class HiveModel {
     }
     debugPrint("==============================================");
 
-    for (var element in BoxType.values) {
-      await Hive.deleteBoxFromDisk(element.boxName);
-      await Hive.openBox(element.boxName);
+    debugPrint("Statistics Box ====================================");
+    var staticBox = Hive.box(BoxType.statistics.boxName);
+    for (var key in staticBox.keys) {
+      debugPrint("key : $key, value : ${staticBox.get(key)}");
     }
+    debugPrint("==============================================");
+
+    // Hive 초기화
+    // for (var element in BoxType.values) {
+    //   await Hive.deleteBoxFromDisk(element.boxName);
+    //   await Hive.openBox(element.boxName);
+    // }
   }
 }

@@ -12,12 +12,12 @@ enum ChartType {
   step,
 }
 
-class BioChart extends StatefulWidget {
+class BioRealtimeChart extends StatefulWidget {
   final Stream<ChartData>? dataStream;
   final ChartType chartType;
   final List<ChartData> initalDatas;
 
-  const BioChart({
+  const BioRealtimeChart({
     required this.dataStream,
     required this.chartType,
     required this.initalDatas,
@@ -25,16 +25,16 @@ class BioChart extends StatefulWidget {
   });
 
   @override
-  State<BioChart> createState() => _BioChartState();
+  State<BioRealtimeChart> createState() => _BioRealtimeChartState();
 }
 
-class _BioChartState extends State<BioChart> {
+class _BioRealtimeChartState extends State<BioRealtimeChart> {
   late Color lineColor;
 
   late double minY;
   late double maxY;
 
-  final points = <FlSpot>[];
+  List<FlSpot> points = [];
   List<ChartData> chartDatas = [];
 
   double xCount = 0.0;
@@ -115,10 +115,23 @@ class _BioChartState extends State<BioChart> {
           _lastData = _dataFiltering(snapshot.data!);
           _lastSyncTime = snapshot.data!.getTime();
 
-          chartDatas.add(snapshot.data!);
-          points.add(FlSpot(xCount.toDouble(), _lastData!));
+          if (chartDatas.length > 30) {
+            chartDatas.removeAt(0);
+            chartDatas.add(snapshot.data!);
 
-          xCount = xCount + 1.0;
+            var results = <FlSpot>[];
+
+            points.removeAt(0);
+            for (var element in points) {
+              results.add(FlSpot(element.x - 1.0, element.y));
+            }
+            results.add(FlSpot(xCount.toDouble(), _lastData!));
+            points = results;
+          } else {
+            chartDatas.add(snapshot.data!);
+            points.add(FlSpot(xCount.toDouble(), _lastData!));
+            xCount = xCount + 1.0;
+          }
         }
 
         return SizedBox(
@@ -170,7 +183,7 @@ class _BioChartState extends State<BioChart> {
       minY: minY,
       maxY: maxY,
       minX: 0.0,
-      maxX: points.isEmpty ? 0.0 : points.last.x + 1.0,
+      maxX: points.isEmpty ? 0.0 : points.last.x,
       lineTouchData: LineTouchData(
         enabled: true,
         getTouchedSpotIndicator: _buildTouchSpot,

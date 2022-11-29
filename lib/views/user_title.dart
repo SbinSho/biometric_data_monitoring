@@ -1,11 +1,14 @@
+import 'dart:ffi';
+
 import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
+import 'package:biometric_data_monitoring/views/bio_statistics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:provider/provider.dart';
 
 import '../models/hive/chart_data.dart';
 import '../models/hive/user.dart';
-import 'bio_chart.dart';
+import 'bio_realtime_chart.dart';
 import 'register.dart';
 
 class UserTile extends StatefulWidget {
@@ -44,7 +47,7 @@ class _UserTileState extends State<UserTile> {
           ),
           Card(
             elevation: 8.0,
-            color: Colors.white70,
+            color: Colors.blueGrey,
             child: Padding(
               padding: const EdgeInsetsDirectional.all(10.0),
               child: Column(
@@ -108,7 +111,23 @@ class _UserTileState extends State<UserTile> {
                                   child: const Text("설정 변경"),
                                 ),
                                 ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    var results = provider.getStatics(user);
+                                    if (results != null) {
+                                      var converts = <ChartData>[];
+                                      for (var element in results) {
+                                        converts.add(element as ChartData);
+                                      }
+
+                                      Navigator.of(context).push<void>(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              BioStatisticsView(
+                                                  dbDatas: converts),
+                                        ),
+                                      );
+                                    }
+                                  },
                                   child: const Text("통계 보기"),
                                 ),
                               ],
@@ -137,6 +156,10 @@ class _UserTileState extends State<UserTile> {
                 "${user.deviceID}",
                 style: Theme.of(context).textTheme.titleMedium,
               ),
+              Text(
+                "수집간격 : ${user.interval}분",
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               StreamBuilder<DeviceConnectionState>(
                 stream: provider.connState(user),
                 initialData: DeviceConnectionState.disconnected,
@@ -154,15 +177,6 @@ class _UserTileState extends State<UserTile> {
                   return Text(state.getName, style: style);
                 },
               ),
-              user.interval == 0
-                  ? Text(
-                      "수집간격 : 실시간",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    )
-                  : Text(
-                      "수집간격 : ${user.interval}분",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
               StreamBuilder<int>(
                 stream: provider.batteryStream(user),
                 initialData: 0,
@@ -183,12 +197,10 @@ class _UserTileState extends State<UserTile> {
       runSpacing: 10.0,
       direction: Axis.horizontal,
       children: List.generate(ChartType.values.length, (index) {
-        return BioChart(
+        return BioRealtimeChart(
           chartType: ChartType.values[index],
           dataStream: provider.chartDataStream(user),
-          initalDatas: [
-            for (var e in provider.getBioDatas(user) ?? []) e as ChartData
-          ],
+          initalDatas: [for (var e in provider.getLastBioDatas(user)) e],
         );
       }),
     );
