@@ -124,6 +124,7 @@ Future<void> registerUser(
         title: user == null ? const Text("사용자 등록") : const Text("사용자 수정"),
         content: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Form(
                 key: formKey,
@@ -163,6 +164,7 @@ Future<void> registerUser(
               StatefulBuilder(
                 builder: (context, setState) {
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -211,7 +213,7 @@ Future<void> registerUser(
             ),
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                final registerUser = User(
+                final editUser = User(
                   userIDCont.text,
                   user?.deviceID,
                   interval.toInt(),
@@ -219,13 +221,13 @@ Future<void> registerUser(
                 );
 
                 if (user != null) {
-                  provider.editUser(user, registerUser).then((value) async {
+                  provider.editUser(user, editUser).then((value) async {
                     if (value) {
                       Navigator.of(context).pop();
                     } else {}
                   });
                 } else {
-                  provider.registerUser(registerUser).then((value) {
+                  provider.registerUser(editUser).then((value) {
                     if (value) {
                       Navigator.of(context).pop();
                     } else {}

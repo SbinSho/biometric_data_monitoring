@@ -21,18 +21,18 @@ class UserTile extends StatefulWidget {
 }
 
 class _UserTileState extends State<UserTile> {
-  late final User user;
+  late User user;
   late final BioMonitoringProvider provider;
 
   @override
   void initState() {
     super.initState();
-    user = widget.user;
     provider = Provider.of<BioMonitoringProvider>(context, listen: false);
   }
 
   @override
   Widget build(BuildContext context) {
+    user = widget.user;
     return Container(
       margin: const EdgeInsetsDirectional.all(10.0),
       child: Column(

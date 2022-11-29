@@ -147,18 +147,18 @@ class BioMonitoringProvider extends ChangeNotifier {
       users.remove(beforeUser.key);
       users[user.key] = user;
 
+      var process = devices[beforeUser.key];
+
+      if (process != null) {
+        await process.taskStop();
+
+        devices.remove(beforeUser.key);
+        var newProcess = DeviceDataProcess(user);
+        devices[user.key] = newProcess;
+        newProcess.changeInterval(user);
+      }
+
       notifyListeners();
-
-      // var process = devices[beforeUser.key];
-
-      // if (process != null) {
-      //   await process.taskStop();
-
-      //   devices.remove(beforeUser.key);
-      //   var newProcess = DeviceDataProcess(user);
-      //   devices[user.key] = newProcess;
-      //   newProcess.taksStart();
-      // }
 
       return true;
     } catch (e) {

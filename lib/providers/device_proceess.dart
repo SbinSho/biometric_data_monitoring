@@ -52,11 +52,6 @@ class DeviceDataProcess {
   bool db = false;
 
   void taksStart() async {
-    if (user.interval == 0) {
-      _task();
-      return;
-    }
-
     var duration = Duration(minutes: user.interval);
 
     _curTask = _task().then((value) {
@@ -79,7 +74,7 @@ class DeviceDataProcess {
     return true;
   }
 
-  void taskRestart(User user) async {
+  void changeInterval(User user) async {
     taskStop();
     this.user = user;
     taksStart();
@@ -107,9 +102,6 @@ class DeviceDataProcess {
     _dataModel.run().then((value) async {
       int dataCount = 0;
       while (dataCount < 10) {
-        if (_lastTemp > 0.0 && _lastHeart > 0.0 && _lastStep >= 0.0) {
-          break;
-        }
         await Future.delayed(const Duration(milliseconds: 500));
         dataCount++;
       }
@@ -120,7 +112,6 @@ class DeviceDataProcess {
 
       _dataModel.notiyCancle();
       await _connectionModel.disConnect();
-
       _curTask = null;
       completer.complete();
     });
@@ -128,22 +119,13 @@ class DeviceDataProcess {
     return completer.future;
   }
 
-  void _bioSave([bool connFlag = false]) {
+  void _bioSave() {
     var chartData = ChartData(
-      0.0,
-      0.0,
-      0.0,
-      DateTime.now(),
+      _lastTemp,
+      _lastHeart,
+      _lastStep,
+      _lastTimeStamp,
     );
-
-    if (!connFlag) {
-      chartData = ChartData(
-        _lastTemp,
-        _lastHeart,
-        _lastStep,
-        _lastTimeStamp,
-      );
-    }
 
     var boxdatas = _bioBox.get(user.key) ?? [];
     _bioBox.put(user.key, [...boxdatas, chartData]);
