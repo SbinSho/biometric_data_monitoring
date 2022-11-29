@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 import 'package:biometric_data_monitoring/views/bio_statistics.dart';
 import 'package:flutter/material.dart';
@@ -47,7 +45,7 @@ class _UserTileState extends State<UserTile> {
           ),
           Card(
             elevation: 8.0,
-            color: Colors.blueGrey,
+            color: Colors.black38,
             child: Padding(
               padding: const EdgeInsetsDirectional.all(10.0),
               child: Column(
@@ -93,13 +91,19 @@ class _UserTileState extends State<UserTile> {
                                   onPressed: () {
                                     provider.deleteUser(user);
                                   },
-                                  child: const Text("계정 삭제"),
+                                  child: const Text(
+                                    "계정 삭제",
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
                                     provider.deleteUser(user);
                                   },
-                                  child: const Text("디바이스 삭제"),
+                                  child: const Text(
+                                    "디바이스 삭제",
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ),
                                 ElevatedButton(
                                   onPressed: () {

@@ -5,43 +5,6 @@ import 'dart:math' as math;
 import '../models/hive/chart_data.dart';
 import 'bio_realtime_chart.dart';
 
-class BarChart extends StatelessWidget {
-  const BarChart({super.key});
-
-  final _barsGradient = const LinearGradient(
-    colors: [
-      Color(0xff23b6e6),
-      Color(0xff02d39a),
-    ],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsetsDirectional.only(
-          top: 30, bottom: 20, start: 15, end: 16),
-      child: BarChart(),
-    );
-  }
-
-  List<BarChartGroupData> barGroups() {
-    return List.generate(3, (index) {
-      return BarChartGroupData(
-        x: index,
-        barRods: [
-          BarChartRodData(
-            toY: 0,
-            gradient: _barsGradient,
-          ),
-        ],
-        showingTooltipIndicators: [0],
-      );
-    }).toList();
-  }
-}
-
 class BioStaticsChart extends StatefulWidget {
   final List<ChartData> dbDatas;
 

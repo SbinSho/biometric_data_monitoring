@@ -171,19 +171,23 @@ class DeviceDataProcess {
     var beforeHeart = _statisticsBox.get("$key-heart");
     var beforeStep = _statisticsBox.get("$key-step");
 
+    double lateTemp = _lastTemp;
+    double lastHeart = _lastHeart;
+    double lastStep = _lastStep;
+
     if (beforeTemp != null) {
       if (beforeHeart == null || beforeStep == null) {
         debugPrint("DB에 저장 된 데이터 에러 발생");
         throw Exception("DB ERROR");
       }
-      _lastTemp += beforeTemp;
-      _lastHeart += beforeHeart;
-      _lastStep += beforeStep;
+      lateTemp += beforeTemp;
+      lastHeart += beforeHeart;
+      lastStep += beforeStep;
     }
 
-    await _statisticsBox.put("$key-temp", _lastTemp);
-    await _statisticsBox.put("$key-heart", _lastHeart);
-    await _statisticsBox.put("$key-step", _lastStep);
+    await _statisticsBox.put("$key-temp", lateTemp);
+    await _statisticsBox.put("$key-heart", lastHeart);
+    await _statisticsBox.put("$key-step", lastStep);
   }
 
   String _keyParsing(DateTime time, DayType type) {
