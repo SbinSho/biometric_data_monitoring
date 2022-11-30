@@ -68,7 +68,6 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
         lineColor = Colors.blueAccent;
         minY = 32.0;
         maxY = 40.0;
-
         break;
       case ChartType.heart:
         lineColor = Colors.redAccent;
@@ -208,7 +207,7 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
         ),
         color: lineColor,
         barWidth: 2,
-        isCurved: true,
+        isCurved: false,
         belowBarData: BarAreaData(
           show: true,
           gradient: LinearGradient(
@@ -331,11 +330,22 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
   double _dataFiltering(ChartData chartData) {
     switch (widget.chartType) {
       case ChartType.temp:
+        if (chartData.temp <= 32) {
+          break;
+        }
         return chartData.temp;
       case ChartType.heart:
+        if (chartData.heart <= 30) {
+          break;
+        }
         return chartData.heart;
       case ChartType.step:
+        if (chartData.step < 0) {
+          break;
+        }
         return chartData.step;
     }
+
+    return points.last.y;
   }
 }

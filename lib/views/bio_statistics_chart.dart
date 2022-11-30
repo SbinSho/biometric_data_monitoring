@@ -1,108 +1,87 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
-import '../models/hive/chart_data.dart';
+import '../providers/device_proceess.dart';
 import 'bio_realtime_chart.dart';
 
-class BioStaticsChart extends StatefulWidget {
-  final List<ChartData> dbDatas;
+import 'dart:math' as math;
 
-  const BioStaticsChart({
-    required this.dbDatas,
+class BioStatisticsChart extends StatelessWidget {
+  final List<double> temps;
+  final List<double> hearts;
+  final List<double> steps;
+
+  final DayType dayType;
+
+  const BioStatisticsChart({
+    required this.temps,
+    required this.hearts,
+    required this.steps,
+    required this.dayType,
     super.key,
   });
 
   @override
-  _BioStaticsChartState createState() => _BioStaticsChartState();
-}
-
-class _BioStaticsChartState extends State<BioStaticsChart> {
-  final tempPoints = <FlSpot>[];
-  final heartPoints = <FlSpot>[];
-  final stepPoints = <FlSpot>[];
-
-  @override
-  void initState() {
-    super.initState();
-    init();
-  }
-
-  void init() {
-    double xCount = 0.0;
-
-    for (var data in widget.dbDatas) {
-      tempPoints.add(FlSpot(xCount, data.temp));
-      heartPoints.add(FlSpot(xCount, data.heart));
-      stepPoints.add(FlSpot(xCount, data.step));
-      xCount++;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsetsDirectional.all(10.0),
-      child: Wrap(
-        runSpacing: 50,
+      margin: const EdgeInsetsDirectional.only(
+          top: 30, bottom: 20, start: 15, end: 16),
+      child: Column(
         children: [
-          SizedBox(
-            width: 300,
-            height: 200,
+          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "TEMP",
-                  style: TextStyle(
-                    fontSize: 30,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text(
+                      "TEMP",
+                      style: TextStyle(
+                        fontSize: 30,
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: LineChart(
-                    _chartData(tempPoints, ChartType.temp),
-                  ),
-                ),
+                const SizedBox(height: 10.0),
+                Expanded(child: BarChart(mainBarData(temps, ChartType.temp))),
               ],
             ),
           ),
-          SizedBox(
-            width: 300,
-            height: 200,
+          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "HEART",
-                  style: TextStyle(
-                    fontSize: 30,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text(
+                      "HEART",
+                      style: TextStyle(
+                        fontSize: 30,
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: LineChart(
-                    _chartData(heartPoints, ChartType.heart),
-                  ),
-                ),
+                const SizedBox(height: 10.0),
+                Expanded(child: BarChart(mainBarData(hearts, ChartType.heart))),
               ],
             ),
           ),
-          SizedBox(
-            width: 300,
-            height: 200,
+          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "STEP",
-                  style: TextStyle(
-                    fontSize: 30,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text(
+                      "STEP",
+                      style: TextStyle(
+                        fontSize: 30,
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: LineChart(
-                    _chartData(stepPoints, ChartType.step),
-                  ),
-                ),
+                const SizedBox(height: 10.0),
+                Expanded(child: BarChart(mainBarData(steps, ChartType.step))),
               ],
             ),
           ),
@@ -111,189 +90,185 @@ class _BioStaticsChartState extends State<BioStaticsChart> {
     );
   }
 
-  LineChartData _chartData(List<FlSpot> points, ChartType chartType) {
-    Color lineColor;
-    double minY;
-    double maxY;
+  BarChartData mainBarData(List<double> datas, ChartType chartType) {
+    double maxFind(double max, List<double> data) {
+      for (var element in data) {
+        max = math.max(max, element);
+      }
+
+      return max;
+    }
+
+    var max = 0.0;
+
+    max = maxFind(max, datas);
+
+    ColorSwatch<int> lineColor;
 
     switch (chartType) {
       case ChartType.temp:
         lineColor = Colors.blueAccent;
-        minY = 32.0;
-        maxY = 40.0;
-
         break;
       case ChartType.heart:
         lineColor = Colors.redAccent;
-        minY = 30.0;
-        maxY = 150.0;
         break;
       case ChartType.step:
         lineColor = Colors.green;
-        var convertY = _convertY(points, chartType);
-        minY = convertY[0];
-        maxY = convertY[1];
         break;
     }
 
-    return LineChartData(
-      minY: minY,
-      maxY: maxY,
-      minX: 0.0,
-      maxX: points.isEmpty ? 0.0 : points.last.x,
-      lineTouchData: LineTouchData(
+    Widget Function(double value, TitleMeta meta) bottomTitles;
+
+    switch (dayType) {
+      case DayType.day:
+        bottomTitles = _dayBottomTitles;
+        break;
+      case DayType.month:
+        bottomTitles = _monthBottomTitles;
+        break;
+      case DayType.year:
+        bottomTitles = _yearBottomTitles;
+        break;
+    }
+
+    return BarChartData(
+      maxY: max + 5.0,
+      barGroups: _groups(datas, lineColor),
+      barTouchData: BarTouchData(
         enabled: true,
-        getTouchedSpotIndicator: (barData, spotIndexes) =>
-            _buildTouchSpot(barData, spotIndexes, lineColor),
-        touchTooltipData: _buildTouchData(points, lineColor),
-      ),
-      gridData: FlGridData(
-        drawHorizontalLine: true,
-      ),
-      lineBarsData: _buildLine(points, lineColor),
-      titlesData: _buildTitle(chartType, minY, maxY),
-    );
-  }
-
-  List<LineChartBarData> _buildLine(List<FlSpot> points, Color lineColor) {
-    final results = <LineChartBarData>[];
-
-    results.add(
-      LineChartBarData(
-        spots: points,
-        dotData: FlDotData(
-          show: false,
+        touchTooltipData: BarTouchTooltipData(
+          tooltipBgColor: lineColor,
+          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+            return BarTooltipItem(
+              "${group.barRods[0].toY.toStringAsFixed(2)}\n",
+              const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.white,
+              ),
+              children: [
+                TextSpan(
+                  text: _buildSpan(groupIndex),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.normal,
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-        color: lineColor,
-        barWidth: 2,
-        isCurved: true,
-        belowBarData: BarAreaData(
-          show: true,
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [lineColor.withOpacity(0.1), lineColor.withOpacity(0.1)],
+      ),
+      titlesData: FlTitlesData(
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 38,
+            getTitlesWidget: bottomTitles,
+          ),
+        ),
+        rightTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 36,
+          ),
+        ),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: false,
+          ),
+        ),
+        topTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: false,
           ),
         ),
       ),
     );
-
-    return results;
   }
 
-  FlTitlesData _buildTitle(ChartType chartType, double minY, double maxY) {
-    return FlTitlesData(
-      show: true,
-      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      bottomTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          getTitlesWidget: (value, meta) {
-            return Text(
-              value.toString(),
-              style: const TextStyle(
-                color: Color(0xff68737d),
-                fontWeight: FontWeight.bold,
-              ),
-            );
-          },
-        ),
-      ),
-      rightTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          reservedSize: 36,
-          interval: 1,
-          getTitlesWidget: (value, meta) =>
-              _buildRightTitle(value, meta, chartType, minY, maxY),
-        ),
-      ),
-    );
-  }
-
-  List<TouchedSpotIndicatorData?> _buildTouchSpot(
-      LineChartBarData barData, List<int> spotIndexes, Color lineColor) {
-    return spotIndexes.map((spotIndex) {
-      return TouchedSpotIndicatorData(
-        FlLine(color: lineColor, strokeWidth: 3),
-        FlDotData(
-          getDotPainter: (spot, percent, barData, index) {
-            return FlDotCirclePainter(
-              radius: 10,
-              color: lineColor,
-              strokeWidth: 2,
-              strokeColor: lineColor.withOpacity(.5),
-            );
-          },
-        ),
+  List<BarChartGroupData> _groups(List<double> datas, Color lineColor) {
+    return List.generate(datas.length, (index) {
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: datas[index],
+            color: lineColor,
+            width: 5,
+          ),
+        ],
       );
-    }).toList();
+    });
   }
 
-  LineTouchTooltipData _buildTouchData(List<FlSpot> points, Color lineColor) {
-    return LineTouchTooltipData(
-      tooltipBgColor: Colors.white,
-      getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-        return touchedBarSpots.map((barSpot) {
-          final index = barSpot.x.toInt();
+  String _buildSpan(int groupIndex) {
+    switch (dayType) {
+      case DayType.day:
+        return "${(groupIndex + 1)}일";
+      case DayType.month:
+        return "${(groupIndex + 1)}월";
 
-          return LineTooltipItem(
-            points[index].y.toStringAsFixed(2),
-            TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: lineColor,
-            ),
-            children: [
-              TextSpan(
-                text: "\n"
-                    "${widget.dbDatas[index].getTime()}",
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.normal,
-                  color: lineColor,
-                ),
-              ),
-            ],
-          );
-        }).toList();
-      },
-    );
+      case DayType.year:
+        var now = DateTime.now();
+        var year = now.year - 2;
+
+        return "${year + groupIndex}년";
+    }
   }
 
-  Widget _buildRightTitle(double value, TitleMeta meta, ChartType chartType,
-      double minY, double maxY) {
-    final titlesMap = <ChartType, double>{
-      ChartType.temp: 36.0,
-      ChartType.heart: 100.0,
-      ChartType.step: maxY / 2.0,
-    };
+  Widget _dayBottomTitles(double value, TitleMeta meta) {
+    const style = TextStyle(color: Color(0xff939393), fontSize: 10);
+    String text = "";
+    int valueToInt = value.toInt();
 
-    if (minY == value || maxY == value || titlesMap[chartType] == value) {
-      return Padding(
-        padding: const EdgeInsets.only(left: 1.0),
-        child: Text(
-          value.toString(),
-        ),
-      );
+    int lastDay = _getLastDay();
+
+    if (valueToInt == 0) {
+      return const Text("1일", style: style);
+    } else if (valueToInt == 14) {
+      text = "15일";
+    } else if (valueToInt + 1 == lastDay) {
+      text = "$lastDay 일";
     }
 
-    return Container();
+    return Center(child: Text(text, style: style));
   }
 
-  Map<String, double> _minMaxFind(double max, double min, List<double> data) {
-    for (var element in data) {
-      max = math.max(max, element);
-      min = math.min(min, element);
+  Widget _monthBottomTitles(double value, TitleMeta meta) {
+    const style = TextStyle(color: Color(0xff939393), fontSize: 10);
+    String text = "";
+    int valueToInt = value.toInt();
+
+    int lastIndex = temps.length;
+
+    if (valueToInt == 0) {
+      return const Center(child: Text("1월", style: style));
+    } else if (valueToInt == 5) {
+      text = "6월";
+    } else if (valueToInt + 1 == lastIndex) {
+      text = "$lastIndex월";
     }
 
-    return {'max': max, 'min': min};
+    return Center(child: Text(text, style: style));
   }
 
-  List<double> _convertY(List<FlSpot> points, ChartType chartType) {
-    final resultY = _minMaxFind(0, 0, [for (var e in points) e.y]);
+  Widget _yearBottomTitles(double value, TitleMeta meta) {
+    const style = TextStyle(color: Color(0xff939393), fontSize: 10);
 
-    return [resultY["min"]!, resultY["max"]! + 100.0];
+    int valueToInt = value.toInt();
+    var now = DateTime.now();
+    var year = now.year - 2;
+
+    valueToInt = year + valueToInt;
+
+    return Center(child: Text(valueToInt.toString(), style: style));
+  }
+
+  int _getLastDay() {
+    var now = DateTime.now();
+
+    return DateTime(now.year, now.month + 1, 0, 0, 0).day;
   }
 }

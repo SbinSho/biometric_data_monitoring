@@ -61,7 +61,9 @@ class DeviceDataProcess {
 
   bool db = false;
 
-  void taksStart() async {
+  Future<void> backTaskStart() async => _curTask = _task();
+
+  void taskStart() async {
     var duration = Duration(minutes: user.interval);
 
     _curTask = _task().then((value) {
@@ -87,7 +89,7 @@ class DeviceDataProcess {
   void changeInterval(User user) async {
     taskStop();
     this.user = user;
-    taksStart();
+    taskStart();
   }
 
   Future<void> _task() async {
@@ -113,6 +115,7 @@ class DeviceDataProcess {
       int dataCount = 0;
       while (dataCount < 10) {
         if (_lastTemp > 0.0 && _lastTemp > 0.0 && _lastStep >= 0.0) {
+          _bioSave();
           break;
         }
 
@@ -120,13 +123,12 @@ class DeviceDataProcess {
         dataCount++;
       }
 
-      if (dataCount < 10) {
-        _bioSave();
-      }
-
       _dataModel.notiyCancle();
       await _connectionModel.disConnect();
       _curTask = null;
+      completer.complete();
+    }).catchError((onError) {
+      debugPrint("작업 진행중 에러");
       completer.complete();
     });
 
@@ -146,12 +148,10 @@ class DeviceDataProcess {
 
     _chartStream.add(chartData);
 
-    for (var element in DayType.values) {
-      _bioStSave(element);
-    }
+    _bioStSave();
   }
 
-  Future<void> _bioStSave(DayType dayType) async {
+  Future<void> _bioStSave() async {
     String keyFormat(DayType type) {
       var key = _keyParsing(DateTime.now(), type);
 
@@ -165,29 +165,33 @@ class DeviceDataProcess {
       }
     }
 
-    var key = keyFormat(dayType);
+    for (var element in DayType.values) {
+      var key = keyFormat(element);
 
-    var beforeTemp = _statisticsBox.get("$key-temp");
-    var beforeHeart = _statisticsBox.get("$key-heart");
-    var beforeStep = _statisticsBox.get("$key-step");
+      var count = _statisticsBox.get("$key-count") ?? 0.0;
+      var beforeTemp = _statisticsBox.get("$key-temp");
+      var beforeHeart = _statisticsBox.get("$key-heart");
+      var beforeStep = _statisticsBox.get("$key-step");
 
-    double lateTemp = _lastTemp;
-    double lastHeart = _lastHeart;
-    double lastStep = _lastStep;
+      double lastTemp = _lastTemp;
+      double lastHeart = _lastHeart;
+      double lastStep = _lastStep;
 
-    if (beforeTemp != null) {
-      if (beforeHeart == null || beforeStep == null) {
-        debugPrint("DB에 저장 된 데이터 에러 발생");
-        throw Exception("DB ERROR");
+      if (beforeTemp != null) {
+        if (beforeHeart == null || beforeStep == null) {
+          debugPrint("DB에 저장 된 데이터 에러 발생");
+          throw Exception("DB ERROR");
+        }
+        lastTemp += beforeTemp;
+        lastHeart += beforeHeart;
+        lastStep += beforeStep;
       }
-      lateTemp += beforeTemp;
-      lastHeart += beforeHeart;
-      lastStep += beforeStep;
+      count += 1.0;
+      await _statisticsBox.put("$key-count", count);
+      await _statisticsBox.put("$key-temp", lastTemp);
+      await _statisticsBox.put("$key-heart", lastHeart);
+      await _statisticsBox.put("$key-step", lastStep);
     }
-
-    await _statisticsBox.put("$key-temp", lateTemp);
-    await _statisticsBox.put("$key-heart", lastHeart);
-    await _statisticsBox.put("$key-step", lastStep);
   }
 
   String _keyParsing(DateTime time, DayType type) {

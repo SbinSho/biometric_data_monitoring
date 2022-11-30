@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:biometric_data_monitoring/models/hive/background_controller.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 import 'package:hive/hive.dart';
@@ -72,7 +74,7 @@ class BioMonitoringProvider extends ChangeNotifier {
         var process = DeviceDataProcess(user.value);
         devices[user.key] = process;
         usedDevices.add(user.value.deviceID!);
-        process.taksStart();
+        process.taskStart();
       }
     }
 
@@ -178,7 +180,7 @@ class BioMonitoringProvider extends ChangeNotifier {
       await _userBox.put(user.key, user);
 
       var process = DeviceDataProcess(user);
-      process.taksStart();
+      process.taskStart();
       devices[user.key] = process;
 
       return true;
@@ -230,6 +232,84 @@ class BioMonitoringProvider extends ChangeNotifier {
     }
 
     return results.reversed;
+  }
+
+  List<List<double>> getBioDatas(
+    User user,
+    DayType dayType,
+    DateTime joinDate,
+  ) {
+    List<String> joinKey(DayType type) {
+      var keys = <String>[];
+
+      var joinYear = joinDate.year.toString();
+      var joinMonth = joinDate.month.toString().padLeft(2, "0");
+      switch (type) {
+        case DayType.day:
+          var lastDay =
+              DateTime(joinDate.year, joinDate.month + 1, 0, 0, 0).day;
+
+          for (int i = 1; i <= lastDay; i++) {
+            keys.add(
+                "${user.key}-Day-$joinYear.$joinMonth.${i.toString().padLeft(2, "0")}");
+          }
+          break;
+        case DayType.month:
+          for (int i = 1; i <= 12; i++) {
+            keys.add(
+                "${user.key}-Month-$joinYear.${i.toString().padLeft(2, '0')}");
+          }
+          break;
+        // return "${user.key}-Month-$key";
+        case DayType.year:
+          for (int i = 0; i < 3; i++) {
+            keys.add("${user.key}-Year-${joinDate.year - i}");
+          }
+          break;
+      }
+
+      return keys;
+    }
+
+    var results = <List<double>>[];
+
+    for (var key in joinKey(dayType)) {
+      var count = _statisticsBox.get("$key-count");
+      var tempData = _statisticsBox.get("$key-temp");
+      var heartData = _statisticsBox.get("$key-heart");
+      var stepData = _statisticsBox.get("$key-step");
+
+      results.add([count ?? 0, tempData ?? 0, heartData ?? 0, stepData ?? 0]);
+    }
+
+    return results;
+  }
+
+  void onDidChangeAppLifecycleState(AppLifecycleState state) async {
+    debugPrint("AppLifecycleState : $state");
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        BackgroundController.initForegroundTask();
+        BackgroundController.startForegroundTask();
+        // BackgroundController.stopForegroundTask();
+        // for (var device in devices.entries) {
+        //   await device.value.taskStop();
+        //   device.value.taskStart();
+        // }
+        break;
+      case AppLifecycleState.inactive:
+        break;
+      case AppLifecycleState.paused:
+        for (var device in devices.entries) {
+          await device.value.taskStop();
+        }
+        // BackgroundController.initForegroundTask();
+        // BackgroundController.startForegroundTask(devices);
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
   }
 
   @override

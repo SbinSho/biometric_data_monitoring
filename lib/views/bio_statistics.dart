@@ -1,149 +1,134 @@
+import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 import 'package:biometric_data_monitoring/providers/device_proceess.dart';
-import 'package:biometric_data_monitoring/views/bio_statistics_chart.dart';
-import 'package:fl_chart/fl_chart.dart';
+
 import 'package:flutter/material.dart';
 
-import '../models/hive/chart_data.dart';
+import '../models/hive/user.dart';
+import 'bio_statistics_chart.dart';
 
-class BioStatisticsView extends StatelessWidget {
-  final List<ChartData> dbDatas;
+class BioStatisticsView extends StatefulWidget {
+  final User user;
+  final BioMonitoringProvider provider;
 
-  const BioStatisticsView({required this.dbDatas, super.key});
+  const BioStatisticsView({
+    required this.user,
+    required this.provider,
+    super.key,
+  });
+
+  @override
+  State<BioStatisticsView> createState() => _BioStatisticsViewState();
+}
+
+class _BioStatisticsViewState extends State<BioStatisticsView> {
+  late final DateTime now;
+  late final BioMonitoringProvider provider;
+  late List<Widget> _widgetOptions;
+
+  List<double> dayTemps = [];
+  List<double> dayHearts = [];
+  List<double> daySteps = [];
+
+  List<double> monthTemps = [];
+  List<double> monthHearts = [];
+  List<double> monthSteps = [];
+
+  List<double> yearTemps = [];
+  List<double> yearHearts = [];
+  List<double> yearSteps = [];
+
+  int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    now = DateTime.now();
+
+    provider = widget.provider;
+
+    for (var value in DayType.values) {
+      for (var element in provider.getBioDatas(widget.user, value, now)) {
+        var count = element[0];
+        var temp = element[1] == 0.0 ? 0.0 : element[1] / count;
+        var heart = element[2] == 0.0 ? 0.0 : element[2] / count;
+        var step = element[3] == 0.0 ? 0.0 : element[3] / count;
+
+        switch (value) {
+          case DayType.day:
+            dayTemps.add(temp);
+            dayHearts.add(heart);
+            daySteps.add(step);
+            break;
+          case DayType.month:
+            monthTemps.add(temp);
+            monthHearts.add(heart);
+            monthSteps.add(step);
+            break;
+          case DayType.year:
+            yearTemps.add(temp);
+            yearHearts.add(heart);
+            yearSteps.add(step);
+            break;
+        }
+      }
+    }
+
+    _widgetOptions = <Widget>[
+      BioStatisticsChart(
+        dayType: DayType.day,
+        temps: dayTemps,
+        hearts: dayHearts,
+        steps: daySteps,
+      ),
+      BioStatisticsChart(
+        dayType: DayType.month,
+        temps: monthTemps,
+        hearts: monthHearts,
+        steps: monthSteps,
+      ),
+      BioStatisticsChart(
+        dayType: DayType.year,
+        temps: yearTemps.reversed.toList(),
+        hearts: yearHearts.reversed.toList(),
+        steps: yearSteps.reversed.toList(),
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text("Bio Monitoring"),
+        title: const Text("일월년별 평균"),
       ),
-      body: TestBarChart(
-        temps: [],
-        hearts: [],
-        steps: [],
-        dayType: DayType.day,
-      ),
-    );
-  }
-}
-
-class TestBarChart extends StatelessWidget {
-  final List<double> temps;
-  final List<double> hearts;
-  final List<double> steps;
-
-  final DayType dayType;
-
-  TestBarChart({
-    required this.temps,
-    required this.hearts,
-    required this.steps,
-    required this.dayType,
-    super.key,
-  });
-
-  final _barsGradient = const LinearGradient(
-    colors: [
-      Color(0xff23b6e6),
-      Color(0xff02d39a),
-    ],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsetsDirectional.only(
-          top: 30, bottom: 20, start: 15, end: 16),
-      child: BarChart(mainBarData()),
-    );
-  }
-
-  BarChartData mainBarData() {
-    return BarChartData(
-      maxY: 50,
-      barGroups: showingGroups(),
-    );
-  }
-
-  int touchedIndex = -1;
-
-  List<BarChartGroupData> showingGroups() {
-    switch (dayType) {
-      case DayType.day:
-        var now = DateTime.now();
-
-        int lastDay = DateTime(now.year, now.month + 1, 0, 0, 0).day;
-        return List.generate(lastDay, (index) {
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: 10,
-                color: Colors.blueAccent,
-                width: 7,
-              ),
-            ],
-            barsSpace: 5.0,
-          );
-        });
-      case DayType.month:
-        // TODO: Handle this case.
-        break;
-      case DayType.year:
-        // TODO: Handle this case.
-        break;
-    }
-
-    return List.generate(7, (i) {
-      switch (i) {
-        case 0:
-          return makeGroupData(0, 5, isTouched: i == touchedIndex);
-        case 1:
-          return makeGroupData(1, 6.5, isTouched: i == touchedIndex);
-        case 2:
-          return makeGroupData(2, 5, isTouched: i == touchedIndex);
-        case 3:
-          return makeGroupData(3, 7.5, isTouched: i == touchedIndex);
-        case 4:
-          return makeGroupData(4, 9, isTouched: i == touchedIndex);
-        case 5:
-          return makeGroupData(5, 11.5, isTouched: i == touchedIndex);
-        case 6:
-          return makeGroupData(6, 6.5, isTouched: i == touchedIndex);
-        default:
-          return throw Error();
-      }
-    });
-  }
-
-  BarChartGroupData makeGroupData(
-    int x,
-    double y, {
-    bool isTouched = false,
-    Color barColor = Colors.white,
-    double width = 22,
-    List<int> showTooltips = const [],
-  }) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: isTouched ? y + 1 : y,
-          color: isTouched ? Colors.yellow : barColor,
-          width: width,
-          borderSide: isTouched
-              ? BorderSide(color: Colors.yellow)
-              : const BorderSide(color: Colors.white, width: 0),
-          backDrawRodData: BackgroundBarChartRodData(
-            show: true,
-            toY: 20,
-            color: Colors.red,
+      body: _widgetOptions.elementAt(_selectedIndex),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.black45,
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.date_range),
+            label: '일',
           ),
-        ),
-      ],
-      showingTooltipIndicators: showTooltips,
+          BottomNavigationBarItem(
+            icon: Icon(Icons.date_range),
+            label: '월',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.date_range),
+            label: '년',
+          ),
+        ],
+        currentIndex: _selectedIndex, // 지정 인덱스로 이동
+        selectedItemColor: Colors.lightGreen,
+        onTap: _onItemTapped, // 선언했던 onItemTapped
+      ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 }

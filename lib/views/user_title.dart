@@ -98,7 +98,7 @@ class _UserTileState extends State<UserTile> {
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
-                                    provider.deleteUser(user);
+                                    provider.deleteDevice(user);
                                   },
                                   child: const Text(
                                     "디바이스 삭제",
@@ -127,7 +127,9 @@ class _UserTileState extends State<UserTile> {
                                         MaterialPageRoute(
                                           builder: (context) =>
                                               BioStatisticsView(
-                                                  dbDatas: converts),
+                                            user: user,
+                                            provider: provider,
+                                          ),
                                         ),
                                       );
                                     }

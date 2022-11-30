@@ -2,6 +2,7 @@ import 'package:biometric_data_monitoring/color_schemes.g.dart';
 import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import 'package:provider/provider.dart';
 
@@ -27,6 +28,7 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
     _bioMonitorProvder = BioMonitoringProvider();
   }
@@ -34,11 +36,13 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    _bioMonitorProvder.onDidChangeAppLifecycleState(state);
   }
 
   @override
   void dispose() async {
     super.dispose();
+    _bioMonitorProvder.dispose();
     WidgetsBinding.instance.removeObserver(this);
   }
 
@@ -62,11 +66,13 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
           ),
         ),
       ),
-      home: MultiProvider(
-        providers: [
-          ChangeNotifierProvider.value(value: _bioMonitorProvder),
-        ],
-        child: const DashBoardView(),
+      home: WithForegroundTask(
+        child: MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: _bioMonitorProvder),
+          ],
+          child: const DashBoardView(),
+        ),
       ),
     );
   }

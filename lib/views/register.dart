@@ -194,7 +194,6 @@ Future<void> registerUser(
           ),
         ),
         actions: <Widget>[
-          // TODO: 버튼 색상 변경 필요
           TextButton(
             child: const Text(
               'Disable',

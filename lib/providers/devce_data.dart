@@ -87,6 +87,8 @@ class DeviceData extends DeviceCommon {
 
     _curTask!.then((value) {
       complater.complete();
+    }).catchError((onError) {
+      complater.completeError(onError);
     });
 
     return complater.future;

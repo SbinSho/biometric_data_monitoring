@@ -74,7 +74,7 @@ class HiveModel {
     }
     debugPrint("==============================================");
 
-    debugPrint("Statistics Box ====================================");
+    debugPrint("Statistics Box ===============================");
     var staticBox = Hive.box(BoxType.statistics.boxName);
     for (var key in staticBox.keys) {
       debugPrint("key : $key, value : ${staticBox.get(key)}");
