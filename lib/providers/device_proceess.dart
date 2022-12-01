@@ -63,6 +63,8 @@ class DeviceDataProcess {
 
   Future<void> backTaskStart() async => _curTask = _task();
 
+  bool get isRunning => _curTask != null;
+
   void taskStart() async {
     var duration = Duration(minutes: user.interval);
 

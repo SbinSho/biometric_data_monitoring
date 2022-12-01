@@ -1,4 +1,5 @@
 import 'package:biometric_data_monitoring/color_schemes.g.dart';
+import 'package:biometric_data_monitoring/models/hive/background_controller.dart';
 import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 
 import 'package:flutter/material.dart';
@@ -31,13 +32,16 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
     _bioMonitorProvder = BioMonitoringProvider();
+    BackgroundController.initForegroundTask();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    _bioMonitorProvder.onDidChangeAppLifecycleState(state);
+    _bioMonitorProvder.onDidChangeAppLifecycleState(state, refresh);
   }
+
+  void refresh() => setState(() {});
 
   @override
   void dispose() async {

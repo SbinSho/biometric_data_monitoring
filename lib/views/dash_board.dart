@@ -17,17 +17,16 @@ class _DashBoardViewState extends State<DashBoardView> {
   @override
   Widget build(BuildContext context) {
     var bioProvider = Provider.of<BioMonitoringProvider>(context);
+    var tiles = [
+      for (var user in bioProvider.users.entries) UserTile(user: user.value),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
         title: const Text("Bio Monitoring"),
       ),
-      body: ListView(
-        children: [
-          for (var user in bioProvider.users.entries)
-            UserTile(user: user.value),
-        ],
-      ),
+      body: ListView(children: tiles),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           registerUser(context, null, bioProvider);

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:biometric_data_monitoring/models/hive/background_controller.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
@@ -285,27 +284,24 @@ class BioMonitoringProvider extends ChangeNotifier {
     return results;
   }
 
-  void onDidChangeAppLifecycleState(AppLifecycleState state) async {
+  void onDidChangeAppLifecycleState(
+      AppLifecycleState state, VoidCallback refresh) {
     debugPrint("AppLifecycleState : $state");
 
     switch (state) {
       case AppLifecycleState.resumed:
-        BackgroundController.initForegroundTask();
-        BackgroundController.startForegroundTask();
-        // BackgroundController.stopForegroundTask();
-        // for (var device in devices.entries) {
-        //   await device.value.taskStop();
-        //   device.value.taskStart();
-        // }
+        BackgroundController.stopForegroundTask().then((value) {
+          for (var device in devices.entries) {
+            device.value.taskStart();
+          }
+          refresh();
+        });
+
         break;
       case AppLifecycleState.inactive:
         break;
       case AppLifecycleState.paused:
-        for (var device in devices.entries) {
-          await device.value.taskStop();
-        }
-        // BackgroundController.initForegroundTask();
-        // BackgroundController.startForegroundTask(devices);
+        BackgroundController.startForegroundTask(devices);
         break;
       case AppLifecycleState.detached:
         break;

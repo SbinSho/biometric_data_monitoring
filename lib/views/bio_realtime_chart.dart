@@ -115,17 +115,25 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
           _lastSyncTime = snapshot.data!.getTime();
 
           if (chartDatas.length > 30) {
-            chartDatas.removeAt(0);
-            chartDatas.add(snapshot.data!);
+            var removeCount = 0;
+            while (chartDatas.length > 30) {
+              chartDatas.removeAt(0);
+              removeCount++;
+            }
 
             var results = <FlSpot>[];
 
-            points.removeAt(0);
-            for (var element in points) {
-              results.add(FlSpot(element.x - 1.0, element.y));
+            chartDatas.add(snapshot.data!);
+            for (var i = 0; i < removeCount; i++) {
+              points.removeAt(0);
             }
-            results.add(FlSpot(xCount.toDouble(), _lastData!));
-            points = results;
+
+            for (var element in points) {
+              results.add(FlSpot((element.x - 1.0), element.y));
+            }
+
+            points.clear();
+            points.addAll(results);
           } else {
             chartDatas.add(snapshot.data!);
             points.add(FlSpot(xCount.toDouble(), _lastData!));
