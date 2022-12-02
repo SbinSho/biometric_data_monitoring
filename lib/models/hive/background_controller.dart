@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
@@ -37,18 +39,14 @@ class BackgroundController {
     );
   }
 
-  static Future<bool> startForegroundTask(
+  static Future<ReceivePort?> startForegroundTask(
       Map<String, DeviceDataProcess> devices) async {
-    for (var device in devices.entries) {
-      await device.value.taskStop();
-    }
-
     if (!await FlutterForegroundTask.canDrawOverlays) {
       final isGranted =
           await FlutterForegroundTask.openSystemAlertWindowSettings();
       if (!isGranted) {
         debugPrint('SYSTEM_ALERT_WINDOW permission denied!');
-        return false;
+        return null;
       }
     }
 
@@ -63,7 +61,12 @@ class BackgroundController {
       );
     }
 
-    return reqResult;
+    ReceivePort? receivePort;
+    if (reqResult) {
+      receivePort = await FlutterForegroundTask.receivePort;
+    }
+
+    return receivePort;
   }
 
   static Future<bool> stopForegroundTask() async {
@@ -74,7 +77,5 @@ class BackgroundController {
 @pragma('vm:entry-point')
 void startCallback() {
   // The setTaskHandler function must be called to handle the task in the background.
-  var task = BackTaskHandler.test;
-
-  task.init().then((value) => FlutterForegroundTask.setTaskHandler(task));
+  FlutterForegroundTask.setTaskHandler(BackTaskHandler());
 }

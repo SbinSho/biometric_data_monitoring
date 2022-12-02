@@ -25,6 +25,9 @@ class BioMonitoringProvider extends ChangeNotifier {
   // 사용중인 디바이스 목록
   final Set<String> usedDevices = {};
 
+  // app lifecycle resumed
+  ValueNotifier<DateTime> resumedTime = ValueNotifier<DateTime>(DateTime.now());
+
   // 스캔 상태에 대한 스트림
   Stream<bool> get scanningState => _scanModel.scanningState;
 
@@ -199,6 +202,8 @@ class BioMonitoringProvider extends ChangeNotifier {
       await process!.taskStop();
       devices.remove(user.key);
 
+      notifyListeners();
+
       return true;
     } catch (e) {
       debugPrint("Device register fail : $e");
@@ -285,23 +290,45 @@ class BioMonitoringProvider extends ChangeNotifier {
   }
 
   void onDidChangeAppLifecycleState(
-      AppLifecycleState state, VoidCallback refresh) {
+      AppLifecycleState state, VoidCallback refresh) async {
     debugPrint("AppLifecycleState : $state");
 
     switch (state) {
       case AppLifecycleState.resumed:
-        BackgroundController.stopForegroundTask().then((value) {
+        resumedTime.value = DateTime.now();
+        BackgroundController.stopForegroundTask().then((value) async {
           for (var device in devices.entries) {
-            device.value.taskStart();
+            await device.value.taskStop();
           }
-          refresh();
+
+          // for (var device in devices.entries) {
+          //   device.value.taskStart();
+          // }
         });
 
         break;
       case AppLifecycleState.inactive:
         break;
       case AppLifecycleState.paused:
-        BackgroundController.startForegroundTask(devices);
+        for (var device in devices.entries) {
+          await device.value.taskStop();
+        }
+        var receivePort =
+            await BackgroundController.startForegroundTask(devices);
+        if (receivePort != null) {
+          receivePort.listen((message) async {
+            if (message is String) {
+              if (message == "onEvent") {
+                for (var device in devices.entries) {
+                  await device.value.backTaskStart();
+                }
+              }
+            }
+          });
+        } else {
+          debugPrint("ReceivePort Null");
+        }
+
         break;
       case AppLifecycleState.detached:
         break;

@@ -29,6 +29,7 @@ class _UserTileState extends State<UserTile> {
   void initState() {
     super.initState();
     provider = Provider.of<BioMonitoringProvider>(context, listen: false);
+    print("PostFrameCallBack init!");
   }
 
   @override
@@ -150,6 +151,7 @@ class _UserTileState extends State<UserTile> {
   }
 
   Widget _buildDeviceInfo() {
+    debugPrint("buildChart!");
     return user.deviceID == null
         ? const SizedBox(
             width: 0,
@@ -207,6 +209,8 @@ class _UserTileState extends State<UserTile> {
           chartType: ChartType.values[index],
           dataStream: provider.chartDataStream(user),
           initalDatas: [for (var e in provider.getLastBioDatas(user)) e],
+          resumedTime: provider.resumedTime,
+          refreshFun: () => provider.getLastBioDatas(user),
         );
       }),
     );

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/hive/chart_data.dart';
 
@@ -16,11 +18,15 @@ class BioRealtimeChart extends StatefulWidget {
   final Stream<ChartData>? dataStream;
   final ChartType chartType;
   final List<ChartData> initalDatas;
+  final ValueNotifier<DateTime> resumedTime;
+  final Function refreshFun;
 
   const BioRealtimeChart({
     required this.dataStream,
     required this.chartType,
     required this.initalDatas,
+    required this.resumedTime,
+    required this.refreshFun,
     super.key,
   });
 
@@ -35,7 +41,11 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
   late double maxY;
 
   List<FlSpot> points = [];
+  List<String> syncTimes = [];
   List<ChartData> chartDatas = [];
+
+  late bool initFlag;
+  ChartData? beforeData;
 
   double xCount = 0.0;
 
@@ -46,21 +56,29 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
   void initState() {
     super.initState();
     init();
+
+    widget.resumedTime.addListener(() {
+      debugPrint("(bio_realtime_chart) app life cycle resumed!");
+      widget.initalDatas.clear();
+      widget.initalDatas.addAll(widget.refreshFun());
+    });
   }
 
   void init() {
     if (widget.initalDatas.isNotEmpty) {
       chartDatas.addAll(widget.initalDatas);
 
+      _lastData = _dataFiltering(chartDatas.last);
+      _lastSyncTime = chartDatas.last.getTime();
+
       for (var element in chartDatas) {
         points.add(
           FlSpot(xCount, _dataFiltering(element)),
         );
+        syncTimes.add(element.getTime());
 
         xCount++;
       }
-      _lastData = _dataFiltering(chartDatas.last);
-      _lastSyncTime = chartDatas.last.getTime();
     }
 
     switch (widget.chartType) {
@@ -80,6 +98,8 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
         maxY = 10000;
         break;
     }
+
+    initFlag = true;
   }
 
   @override
@@ -87,7 +107,7 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
     return StreamBuilder<ChartData>(
       stream: widget.dataStream,
       builder: (context, snapshot) {
-        if (snapshot.data == null && chartDatas.isEmpty) {
+        if (snapshot.data == null && !initFlag) {
           return SizedBox(
             width: 300,
             height: 200,
@@ -111,35 +131,26 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
         }
 
         if (snapshot.data != null) {
-          _lastData = _dataFiltering(snapshot.data!);
-          _lastSyncTime = snapshot.data!.getTime();
-
-          if (chartDatas.length > 30) {
-            var removeCount = 0;
-            while (chartDatas.length > 30) {
-              chartDatas.removeAt(0);
-              removeCount++;
-            }
-
-            var results = <FlSpot>[];
-
-            chartDatas.add(snapshot.data!);
-            for (var i = 0; i < removeCount; i++) {
+          if (snapshot.data != beforeData) {
+            _lastData = _dataFiltering(snapshot.data!);
+            _lastSyncTime = snapshot.data!.getTime();
+            if (points.length > 29) {
+              var results = <FlSpot>[];
               points.removeAt(0);
-            }
+              syncTimes.removeAt(0);
+              for (var element in points) {
+                results.add(FlSpot((element.x - 1.0), element.y));
+              }
 
-            for (var element in points) {
-              results.add(FlSpot((element.x - 1.0), element.y));
+              points.clear();
+              points.addAll(results);
+              points.add(FlSpot(29, _lastData!));
+              syncTimes.add(_lastSyncTime ?? "");
             }
-
-            points.clear();
-            points.addAll(results);
-          } else {
-            chartDatas.add(snapshot.data!);
-            points.add(FlSpot(xCount.toDouble(), _lastData!));
-            xCount = xCount + 1.0;
           }
         }
+
+        beforeData = snapshot.data;
 
         return SizedBox(
           width: 300,
@@ -159,7 +170,7 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "DATA : ${_lastData ?? ""}",
+                        "DATA : $_lastData",
                         style: TextStyle(
                           fontSize: 21,
                           color: lineColor,
@@ -283,7 +294,7 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
             children: [
               TextSpan(
                 text: "\n"
-                    "${chartDatas[index].getTime()}",
+                    "${syncTimes[index]}",
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.normal,

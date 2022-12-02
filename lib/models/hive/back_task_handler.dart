@@ -12,11 +12,9 @@ import 'user.dart';
 class BackTaskHandler extends TaskHandler {
   Map<String, DeviceDataProcess>? devices;
 
-  static BackTaskHandler test = BackTaskHandler();
-
   Future<void> init() async {
     await HiveModel.init();
-    devices = _loadDevices();
+    // devices = _loadDevices();
   }
 
   @override
@@ -27,25 +25,26 @@ class BackTaskHandler extends TaskHandler {
   @override
   Future<void> onEvent(DateTime timestamp, SendPort? sendPort) async {
     debugPrint("Foreground onEvent");
-    if (devices != null) {
-      for (var element in devices!.entries) {
-        var device = element.value;
-        if (device.isRunning) {
-          continue;
-        }
-        await device.backTaskStart();
-      }
-    }
+    // if (devices != null) {
+    //   for (var element in devices!.entries) {
+    //     var device = element.value;
+    //     if (device.isRunning) {
+    //       continue;
+    //     }
+    //     await device.backTaskStart();
+    //   }
+    // }
+    sendPort?.send("onEvent");
   }
 
   @override
   Future<void> onDestroy(DateTime timestamp, SendPort? sendPort) async {
     debugPrint("Foreground onDestroy");
-    if (devices != null) {
-      for (var device in devices!.entries) {
-        await device.value.taskStop();
-      }
-    }
+    // if (devices != null) {
+    //   for (var device in devices!.entries) {
+    //     await device.value.taskStop();
+    //   }
+    // }
     await FlutterForegroundTask.clearAllData();
   }
 
@@ -53,11 +52,11 @@ class BackTaskHandler extends TaskHandler {
   @override
   void onButtonPressed(String id) {
     debugPrint("Foreground onButtonPressed");
-    if (devices != null) {
-      for (var device in devices!.entries) {
-        device.value.taskStop();
-      }
-    }
+    // if (devices != null) {
+    //   for (var device in devices!.entries) {
+    //     device.value.taskStop();
+    //   }
+    // }
     BackgroundController.stopForegroundTask();
   }
 
@@ -65,44 +64,44 @@ class BackTaskHandler extends TaskHandler {
   @override
   void onNotificationPressed() {
     debugPrint("Foreground onButtonPressed");
-    if (devices != null) {
-      for (var device in devices!.entries) {
-        device.value.taskStop();
-      }
-    }
+    // if (devices != null) {
+    //   for (var device in devices!.entries) {
+    //     device.value.taskStop();
+    //   }
+    // }
     FlutterForegroundTask.launchApp();
   }
 
-  Map<String, DeviceDataProcess> _loadDevices() {
-    Map<String, User> loadUsers() {
-      try {
-        var userBox = Hive.box(BoxType.user.boxName);
-        final values = userBox.values;
+  // Map<String, DeviceDataProcess> _loadDevices() {
+  //   Map<String, User> loadUsers() {
+  //     try {
+  //       var userBox = Hive.box(BoxType.user.boxName);
+  //       final values = userBox.values;
 
-        final users = <String, User>{};
+  //       final users = <String, User>{};
 
-        for (var value in values) {
-          if (value is User) {
-            users[value.key] = value;
-          }
-        }
+  //       for (var value in values) {
+  //         if (value is User) {
+  //           users[value.key] = value;
+  //         }
+  //       }
 
-        return users;
-      } catch (e) {
-        debugPrint("Load User Error : $e");
-        return {};
-      }
-    }
+  //       return users;
+  //     } catch (e) {
+  //       debugPrint("Load User Error : $e");
+  //       return {};
+  //     }
+  //   }
 
-    var devices = <String, DeviceDataProcess>{};
+  //   var devices = <String, DeviceDataProcess>{};
 
-    for (var user in loadUsers().entries) {
-      if (user.value.deviceID != null) {
-        var process = DeviceDataProcess(user.value);
-        devices[user.key] = process;
-      }
-    }
+  //   for (var user in loadUsers().entries) {
+  //     if (user.value.deviceID != null) {
+  //       var process = DeviceDataProcess(user.value);
+  //       devices[user.key] = process;
+  //     }
+  //   }
 
-    return devices;
-  }
+  //   return devices;
+  // }
 }

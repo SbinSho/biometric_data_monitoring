@@ -16,23 +16,26 @@ class DashBoardView extends StatefulWidget {
 class _DashBoardViewState extends State<DashBoardView> {
   @override
   Widget build(BuildContext context) {
-    var bioProvider = Provider.of<BioMonitoringProvider>(context);
-    var tiles = [
-      for (var user in bioProvider.users.entries) UserTile(user: user.value),
-    ];
+    return Consumer<BioMonitoringProvider>(
+      builder: (context, value, child) {
+        var tiles = [
+          for (var user in value.users.entries) UserTile(user: user.value),
+        ];
 
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text("Bio Monitoring"),
-      ),
-      body: ListView(children: tiles),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          registerUser(context, null, bioProvider);
-        },
-        child: const Icon(Icons.add),
-      ),
+        return Scaffold(
+          appBar: AppBar(
+            centerTitle: true,
+            title: const Text("Bio Monitoring"),
+          ),
+          body: ListView(children: tiles),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              registerUser(context, null, value);
+            },
+            child: const Icon(Icons.add),
+          ),
+        );
+      },
     );
   }
 }
