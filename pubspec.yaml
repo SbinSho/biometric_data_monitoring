@@ -35,6 +35,8 @@ dependencies:
 
   permission_handler: ^10.2.0
   flutter_foreground_task: ^3.10.0
+  flutter_foreground_plugin:
+    path: submodules/flutter_foreground_service_plugin
 
 dev_dependencies:
   flutter_test:

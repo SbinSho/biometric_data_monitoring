@@ -8,6 +8,7 @@ import 'package:hive/hive.dart';
 
 import '../models/hive/chart_data.dart';
 import '../models/hive/hive_model.dart';
+import '../models/hive/themo_foreground.dart';
 import '../models/hive/user.dart';
 
 import 'device_proceess.dart';
@@ -285,23 +286,35 @@ class BioMonitoringProvider extends ChangeNotifier {
   }
 
   void onDidChangeAppLifecycleState(
-      AppLifecycleState state, VoidCallback refresh) {
+      AppLifecycleState state, VoidCallback refresh) async {
     debugPrint("AppLifecycleState : $state");
 
     switch (state) {
       case AppLifecycleState.resumed:
-        BackgroundController.stopForegroundTask().then((value) {
-          for (var device in devices.entries) {
-            device.value.taskStart();
-          }
-          refresh();
-        });
+        AndroidForegroundService.stopForegroundService();
+        for (var device in devices.entries) {
+          device.value.taskStart();
+        }
+        // BackgroundController.stopForegroundTask().then((value) {
+        //   for (var device in devices.entries) {
+        //     device.value.taskStart();
+        //   }
+        //   refresh();
+        // });
 
         break;
       case AppLifecycleState.inactive:
         break;
       case AppLifecycleState.paused:
-        BackgroundController.startForegroundTask(devices);
+        // BackgroundController.startForegroundTask(devices);
+        for (var device in devices.entries) {
+          await device.value.taskStop();
+        }
+        AndroidForegroundService.startForegroundService(1, () {
+          for (var device in devices.entries) {
+            device.value.taskStart();
+          }
+        });
         break;
       case AppLifecycleState.detached:
         break;

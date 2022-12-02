@@ -202,6 +202,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_foreground_plugin:
+    dependency: "direct main"
+    description:
+      path: "submodules/flutter_foreground_service_plugin"
+      relative: true
+    source: path
+    version: "0.8.0"
   flutter_foreground_task:
     dependency: "direct main"
     description:
