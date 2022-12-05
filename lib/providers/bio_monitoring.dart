@@ -301,18 +301,15 @@ class BioMonitoringProvider extends ChangeNotifier {
             await device.value.taskStop();
           }
 
-          // for (var device in devices.entries) {
-          //   device.value.taskStart();
-          // }
+          for (var device in devices.entries) {
+            device.value.taskStart();
+          }
         });
 
         break;
       case AppLifecycleState.inactive:
         break;
       case AppLifecycleState.paused:
-        for (var device in devices.entries) {
-          await device.value.taskStop();
-        }
         var receivePort =
             await BackgroundController.startForegroundTask(devices);
         if (receivePort != null) {
@@ -327,6 +324,7 @@ class BioMonitoringProvider extends ChangeNotifier {
           });
         } else {
           debugPrint("ReceivePort Null");
+          BackgroundController.stopForegroundTask();
         }
 
         break;

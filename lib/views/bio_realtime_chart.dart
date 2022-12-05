@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../models/hive/chart_data.dart';
 
@@ -54,13 +52,28 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
 
   @override
   void initState() {
+    debugPrint("initState!");
     super.initState();
     init();
 
+    WidgetsBinding.instance.addPostFrameCallback(listener);
+  }
+
+  void listener(Duration timeStamp) {
     widget.resumedTime.addListener(() {
       debugPrint("(bio_realtime_chart) app life cycle resumed!");
       widget.initalDatas.clear();
+      points.clear();
+      syncTimes.clear();
+      chartDatas.clear();
+      _lastData = null;
+      _lastSyncTime = null;
+      xCount = 0.0;
+
       widget.initalDatas.addAll(widget.refreshFun());
+      setState(() {
+        init();
+      });
     });
   }
 
@@ -107,7 +120,7 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
     return StreamBuilder<ChartData>(
       stream: widget.dataStream,
       builder: (context, snapshot) {
-        if (snapshot.data == null && !initFlag) {
+        if (snapshot.data == null && chartDatas.isEmpty) {
           return SizedBox(
             width: 300,
             height: 200,
@@ -130,24 +143,32 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
           );
         }
 
-        if (snapshot.data != null) {
-          if (snapshot.data != beforeData) {
-            _lastData = _dataFiltering(snapshot.data!);
-            _lastSyncTime = snapshot.data!.getTime();
-            if (points.length > 29) {
-              var results = <FlSpot>[];
-              points.removeAt(0);
-              syncTimes.removeAt(0);
-              for (var element in points) {
-                results.add(FlSpot((element.x - 1.0), element.y));
-              }
+        if (!initFlag) {
+          if (snapshot.data != null) {
+            if (snapshot.data != beforeData) {
+              _lastData = _dataFiltering(snapshot.data!);
+              _lastSyncTime = snapshot.data!.getTime();
+              if (points.length > 29) {
+                var results = <FlSpot>[];
+                points.removeAt(0);
+                syncTimes.removeAt(0);
+                for (var element in points) {
+                  results.add(FlSpot((element.x - 1.0), element.y));
+                }
 
-              points.clear();
-              points.addAll(results);
-              points.add(FlSpot(29, _lastData!));
-              syncTimes.add(_lastSyncTime ?? "");
+                points.clear();
+                points.addAll(results);
+                points.add(FlSpot(29, _lastData!));
+                syncTimes.add(_lastSyncTime ?? "");
+              } else {
+                points.add(FlSpot(xCount, _lastData!));
+                syncTimes.add(_lastSyncTime ?? "");
+                xCount++;
+              }
             }
           }
+        } else {
+          initFlag = false;
         }
 
         beforeData = snapshot.data;

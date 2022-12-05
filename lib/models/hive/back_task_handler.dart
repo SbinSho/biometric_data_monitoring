@@ -2,12 +2,10 @@ import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../providers/device_proceess.dart';
 import 'background_controller.dart';
 import 'hive_model.dart';
-import 'user.dart';
 
 class BackTaskHandler extends TaskHandler {
   Map<String, DeviceDataProcess>? devices;

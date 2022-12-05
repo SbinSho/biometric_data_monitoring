@@ -29,7 +29,6 @@ class _UserTileState extends State<UserTile> {
   void initState() {
     super.initState();
     provider = Provider.of<BioMonitoringProvider>(context, listen: false);
-    print("PostFrameCallBack init!");
   }
 
   @override

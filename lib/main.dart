@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:biometric_data_monitoring/color_schemes.g.dart';
 import 'package:biometric_data_monitoring/models/hive/background_controller.dart';
 import 'package:biometric_data_monitoring/providers/bio_monitoring.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:provider/provider.dart';
 
@@ -29,7 +32,25 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      // You can request multiple permissions at once.
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.location,
+        Permission.bluetoothScan,
+      ].request();
 
+      for (var element in statuses.entries) {
+        if (element.value.isGranted) {
+          continue;
+        } else if (element.value.isDenied) {
+          await element.key.request();
+        } else if (element.value.isPermanentlyDenied) {
+          openAppSettings();
+        } else {
+          exit(0);
+        }
+      }
+    });
     WidgetsBinding.instance.addObserver(this);
     _bioMonitorProvder = BioMonitoringProvider();
     BackgroundController.initForegroundTask();
