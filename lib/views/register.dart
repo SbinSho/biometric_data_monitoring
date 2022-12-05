@@ -45,9 +45,8 @@ Future<bool?> registerDevice(
                             continue;
                           }
                           widgets.add(
-                            InkWell(
+                            ListTile(
                               onTap: () {
-                                provider.startScan();
                                 provider
                                     .registerDevice(user, element.value.id)
                                     .then((value) {
@@ -58,11 +57,9 @@ Future<bool?> registerDevice(
                                   }
                                 });
                               },
-                              child: ListTile(
-                                title: Text(element.value.name),
-                                subtitle: Text(element.value.id),
-                                trailing: Text("rssi : ${element.value.rssi}"),
-                              ),
+                              title: Text(element.value.name),
+                              subtitle: Text(element.value.id),
+                              trailing: Text("rssi : ${element.value.rssi}"),
                             ),
                           );
                         }
