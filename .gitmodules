@@ -1,0 +1,3 @@
+[submodule "th_navigator"]
+	path = th_navigator
+	url = http://git.i-gns.co.kr/thub_flutter/packages/th_navigator.git
