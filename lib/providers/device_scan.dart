@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 import '../app_constant.dart';
+import '../models/hive/permission_check.dart';
 
 class DeviceScan {
   static final DeviceScan _singleton = DeviceScan._internal();
@@ -32,7 +33,9 @@ class DeviceScan {
   Stream<Map<String, DiscoveredDevice>> get deviceDatas =>
       _devicesStream.stream;
 
-  void startScan([int scanningTime = 20]) {
+  void startScan([int scanningTime = 20]) async {
+    await BlePermissionCheck.permissionCheck();
+
     deviceInfo.clear();
     _bleScaningStream.add(true);
     _deviceScanSubscription = _ble.scanForDevices(

@@ -198,6 +198,9 @@ class BioMonitoringProvider extends ChangeNotifier {
       usedDevices.remove(user.deviceID);
       user.deviceID = null;
 
+      await _userBox.delete(user.key);
+      await _userBox.put(user.key, user);
+
       var process = devices[user.key];
       await process!.taskStop();
       devices.remove(user.key);
@@ -289,43 +292,19 @@ class BioMonitoringProvider extends ChangeNotifier {
     return results;
   }
 
-  void onDidChangeAppLifecycleState(
-      AppLifecycleState state, VoidCallback refresh) async {
+  void onDidChangeAppLifecycleState(AppLifecycleState state) {
     debugPrint("AppLifecycleState : $state");
 
     switch (state) {
       case AppLifecycleState.resumed:
         resumedTime.value = DateTime.now();
-        BackgroundController.stopForegroundTask().then((value) async {
-          for (var device in devices.entries) {
-            await device.value.taskStop();
-          }
-
-          for (var device in devices.entries) {
-            device.value.taskStart();
-          }
-        });
+        BackgroundController.stopForegroundTask();
 
         break;
       case AppLifecycleState.inactive:
         break;
       case AppLifecycleState.paused:
-        var receivePort =
-            await BackgroundController.startForegroundTask(devices);
-        if (receivePort != null) {
-          receivePort.listen((message) async {
-            if (message is String) {
-              if (message == "onEvent") {
-                for (var device in devices.entries) {
-                  await device.value.backTaskStart();
-                }
-              }
-            }
-          });
-        } else {
-          debugPrint("ReceivePort Null");
-          BackgroundController.stopForegroundTask();
-        }
+        BackgroundController.startForegroundTask();
 
         break;
       case AppLifecycleState.detached:

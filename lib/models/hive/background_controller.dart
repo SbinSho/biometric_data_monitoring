@@ -39,12 +39,7 @@ class BackgroundController {
     );
   }
 
-  static Future<ReceivePort?> startForegroundTask(
-      Map<String, DeviceDataProcess> devices) async {
-    for (var device in devices.entries) {
-      await device.value.taskStop();
-    }
-
+  static Future<ReceivePort?> startForegroundTask() async {
     if (!await FlutterForegroundTask.canDrawOverlays) {
       final isGranted =
           await FlutterForegroundTask.openSystemAlertWindowSettings();
