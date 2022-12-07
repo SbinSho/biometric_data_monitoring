@@ -54,6 +54,7 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
   void initState() {
     debugPrint("initState!");
     super.initState();
+    initFlag = false;
     init();
 
     WidgetsBinding.instance.addPostFrameCallback(listener);
@@ -71,9 +72,11 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
       xCount = 0.0;
 
       widget.initalDatas.addAll(widget.refreshFun());
-      setState(() {
-        init();
-      });
+      if (mounted) {
+        setState(() {
+          init();
+        });
+      }
     });
   }
 
@@ -92,6 +95,8 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
 
         xCount++;
       }
+
+      initFlag = true;
     }
 
     switch (widget.chartType) {
@@ -103,7 +108,7 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
       case ChartType.heart:
         lineColor = Colors.redAccent;
         minY = 30.0;
-        maxY = 150.0;
+        maxY = 200.0;
         break;
       case ChartType.step:
         lineColor = Colors.green;
@@ -111,8 +116,6 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
         maxY = 10000;
         break;
     }
-
-    initFlag = true;
   }
 
   @override
@@ -371,21 +374,30 @@ class _BioRealtimeChartState extends State<BioRealtimeChart> {
     switch (widget.chartType) {
       case ChartType.temp:
         if (chartData.temp <= 32) {
+          if (beforeData != null) {
+            return beforeData!.temp;
+          }
           break;
         }
         return chartData.temp;
       case ChartType.heart:
         if (chartData.heart <= 30) {
+          if (beforeData != null) {
+            return beforeData!.heart;
+          }
           break;
         }
         return chartData.heart;
       case ChartType.step:
         if (chartData.step < 0) {
+          if (beforeData != null) {
+            return beforeData!.step;
+          }
           break;
         }
         return chartData.step;
     }
 
-    return points.last.y;
+    return 0.0;
   }
 }

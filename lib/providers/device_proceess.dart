@@ -61,11 +61,21 @@ class DeviceDataProcess {
 
   bool db = false;
 
-  Future<void> backTaskStart() async => _curTask = _task();
+  Future<void> backTaskStart() async {
+    if (_curTask != null) {
+      return;
+    }
+    _curTask = _task();
+  }
 
   bool get isRunning => _curTask != null;
 
   void taskStart() async {
+    if (_curTask != null) {
+      await _curTask;
+      await Future.delayed(Duration(minutes: user.interval));
+    }
+
     var duration = Duration(minutes: user.interval);
 
     _curTask = _task().then((value) {
@@ -112,11 +122,14 @@ class DeviceDataProcess {
       return completer.future;
     }
 
+    var dataFlag = false;
     _dataModel.notiySubscription();
     _dataModel.run().then((value) async {
       int dataCount = 0;
       while (dataCount < 10) {
         if (_lastTemp > 0.0 && _lastTemp > 0.0 && _lastStep >= 0.0) {
+          dataFlag = true;
+          _dataModel.notiyCancle();
           _bioSave();
           break;
         }
@@ -125,7 +138,10 @@ class DeviceDataProcess {
         dataCount++;
       }
 
-      _dataModel.notiyCancle();
+      if (!dataFlag) {
+        _dataModel.notiyCancle();
+      }
+
       await _connectionModel.disConnect();
       _curTask = null;
       completer.complete();

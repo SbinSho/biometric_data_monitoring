@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 import '../app_constant.dart';
+import '../models/hive/permission_check.dart';
 import 'device_common.dart';
 
 /// DeviceConnectionModel
@@ -21,6 +22,12 @@ class DeviceConnection extends DeviceCommon {
   final _connectionTimeout = const Duration(seconds: 10);
 
   Future<bool> connect() async {
+    var result = await BlePermissionCheck.permissionCheck();
+
+    if (!result) {
+      return false;
+    }
+
     final completer = Completer<bool>();
 
     _connectionTimer = Timer(_connectionTimeout, () {
@@ -80,6 +87,8 @@ class DeviceConnection extends DeviceCommon {
   Future<void> disConnect() async {
     debugPrint("B7Pro DisConnect!");
 
+    _connectionTimer?.cancel();
+    _connectionTimer = null;
     _connectionStream.add(DeviceConnectionState.disconnected);
     await _connectSubscription?.cancel();
     _connectSubscription = null;
